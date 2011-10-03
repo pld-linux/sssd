@@ -5,9 +5,6 @@
 #        libcollection-devel is needed by sssd-1.6.1-0.1.src
 #        libdhash-devel >= 0.4.2 is needed by sssd-1.6.1-0.1.src
 #        libini_config-devel is needed by sssd-1.6.1-0.1.src
-#        libldb-devel = 1.1.0 is needed by sssd-1.6.1-0.1.src
-#        libtdb-devel is needed by sssd-1.6.1-0.1.src
-#        libtevent-devel is needed by sssd-1.6.1-0.1.src
 
 %define		ldb_version 1.1.0
 Summary:	System Security Services Daemon
@@ -38,8 +35,6 @@ BuildRequires:	libnl-devel
 BuildRequires:	libselinux-devel
 BuildRequires:	libsemanage-devel
 BuildRequires:	libtalloc-devel
-BuildRequires:	libtdb-devel
-BuildRequires:	libtevent-devel
 BuildRequires:	libtool
 BuildRequires:	libunistring-devel
 BuildRequires:	libxml2
@@ -54,13 +49,15 @@ BuildRequires:	pcre-devel
 BuildRequires:	popt-devel
 BuildRequires:	python-devel
 BuildRequires:	rpmbuild(macros) >= 1.228
+BuildRequires:	tdb-devel
+BuildRequires:	tevent-devel
 Requires(post,preun):	/sbin/chkconfig
 Requires(post,postun):	/sbin/ldconfig
+Requires:	%{name}-client = %{version}-%{release}
 Requires:	cyrus-sasl-gssapi
 Requires:	krb5-libs >= 1.9
 Requires:	libldb = %{ldb_version}
-Requires:	libtdb >= 1.1.3
-Requires:	%{name}-client = %{version}-%{release}
+Requires:	tdb >= 1.1.3
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %define		servicename		sssd
