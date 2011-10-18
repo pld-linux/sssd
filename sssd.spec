@@ -2,6 +2,9 @@
 #error: Failed build dependencies:
 #        keyutils-libs-devel is needed by sssd-1.6.1-0.1.src
 #        krb5-devel >= 1.9 is needed by sssd-1.6.1-0.1.src
+#        libcollection-devel is needed by sssd-1.6.1-0.1.src
+#        libdhash-devel >= 0.4.2 is needed by sssd-1.6.1-0.1.src
+#        libini_config-devel is needed by sssd-1.6.1-0.1.src
 
 %define		ldb_version 1.1.0
 Summary:	System Security Services Daemon
@@ -12,10 +15,6 @@ License:	GPL v3+
 Group:		Applications/System
 URL:		http://fedorahosted.org/sssd/
 Source0:	https://fedorahosted.org/released/sssd/%{name}-%{version}.tar.gz
-# Source0-md5:	2da6d0006b70929d4d491e952e808bf5
-Source1:    %{name}.init
-Patch0:		%{name}-python-config.patch
-Patch1:		%{name}-heimdal.patch
 BuildRequires:	autoconf
 BuildRequires:	automake
 BuildRequires:	bind-utils
@@ -23,14 +22,13 @@ BuildRequires:	c-ares-devel
 BuildRequires:	check-devel
 BuildRequires:	dbus-devel
 BuildRequires:	dbus-libs
-BuildRequires:	docbook-dtd44-xml
 BuildRequires:	docbook-style-xsl
 BuildRequires:	doxygen
 BuildRequires:	gettext-devel
-BuildRequires:	heimdal-devel
-BuildRequires:	keyutils-devel
+BuildRequires:	keyutils-libs-devel
+BuildRequires:	krb5-devel >= 1.9
 BuildRequires:	libcollection-devel
-BuildRequires:	libdhash-devel
+BuildRequires:	libdhash-devel >= 0.4.2
 BuildRequires:	libini_config-devel
 BuildRequires:	libldb-devel = %{ldb_version}
 BuildRequires:	libnl-devel
@@ -53,10 +51,13 @@ BuildRequires:	python-devel
 BuildRequires:	rpmbuild(macros) >= 1.228
 BuildRequires:	tdb-devel
 BuildRequires:	tevent-devel
-Requires(post,postun):	/sbin/ldconfig
 Requires(post,preun):	/sbin/chkconfig
+Requires(post,postun):	/sbin/ldconfig
 Requires:	%{name}-client = %{version}-%{release}
 Requires:	cyrus-sasl-gssapi
+Requires:	krb5-libs >= 1.9
+Requires:	libldb = %{ldb_version}
+Requires:	tdb >= 1.1.3
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
 %define		servicename		sssd
@@ -129,16 +130,9 @@ Python applications.
 
 %prep
 %setup -q
-%patch0 -p1
-%patch1 -p1
 
 %build
-%{__gettextize}
-%{__aclocal}
-%{__automake}
-%{__autoconf}
-CFLAGS=-Wno-deprecated-declarations
-export CFLAGS
+autoreconf -ivf
 %configure \
 	--with-db-path=%{dbpath} \
 	--with-pipe-path=%{pipepath} \
@@ -180,7 +174,20 @@ cp -p src/examples/logrotate $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/sssd
 install -d $RPM_BUILD_ROOT/%{_sysconfdir}/rwtab.d
 cp -p src/examples/rwtab $RPM_BUILD_ROOT%{_sysconfdir}/rwtab.d/sssd
 
-install %{SOURCE1} $RPM_BUILD_ROOT%{_sysconfdir}/rc.d/init.d/%{name}
+# Remove .la files created by libtool
+%{__rm} \
+    $RPM_BUILD_ROOT/%{_lib}/libnss_sss.la \
+    $RPM_BUILD_ROOT/%{_lib}/security/pam_sss.la \
+    $RPM_BUILD_ROOT/%{ldb_modulesdir}/memberof.la \
+    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_ldap.la \
+    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_proxy.la \
+    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_krb5.la \
+    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_ipa.la \
+    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_simple.la \
+    $RPM_BUILD_ROOT/%{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.la \
+    $RPM_BUILD_ROOT/%{_libdir}/libipa_hbac.la \
+    $RPM_BUILD_ROOT/%{py_sitedir}/pysss.la \
+    $RPM_BUILD_ROOT/%{py_sitedir}/pyhbac.la
 
 touch sssd_tools.lang
 for man in `find $RPM_BUILD_ROOT/%{_mandir}/??/man?/ -type f | sed -e "s#$RPM_BUILD_ROOT/%{_mandir}/##"`; do
@@ -217,13 +224,9 @@ fi
 
 %files -f sssd.lang
 %defattr(644,root,root,755)
-%attr(755,root,root) /etc/rc.d/init.d/sssd
-%defattr(644,root,root,755)
 %attr(755,root,root) %{_sbindir}/sssd
-%dir %{_libexecdir}/%{servicename}
-%attr(755,root,root) %{_libexecdir}/%{servicename}/*child
-%attr(755,root,root) %{_libexecdir}/%{servicename}/sssd_*
-%attr(755,root,root) %{_libexecdir}/%{servicename}/*.so
+%{_libexecdir}/%{servicename}
+%{_libdir}/%{name}/
 %attr(755,root,root) %{ldb_modulesdir}/memberof.so
 %dir %{sssdstatedir}
 %attr(700,root,root) %dir %{dbpath}
@@ -232,12 +235,12 @@ fi
 %attr(700,root,root) %dir %{pipepath}/private
 %attr(750,root,root) %dir %{_var}/log/%{name}
 %attr(700,root,root) %dir %{_sysconfdir}/sssd
-%config(noreplace) %attr(600,root,root) %{_sysconfdir}/sssd/sssd.conf
+%config(noreplace) %{_sysconfdir}/sssd/sssd.conf
 %config(noreplace) /etc/logrotate.d/sssd
 %config(noreplace) %{_sysconfdir}/rwtab.d/sssd
 %config %{_sysconfdir}/sssd/sssd.api.conf
 %attr(700,root,root) %dir %{_sysconfdir}/sssd/sssd.api.d
-%config %attr(600,root,root) %{_sysconfdir}/sssd/sssd.api.d/*
+%config %{_sysconfdir}/sssd/sssd.api.d/
 %{_mandir}/man5/sssd.conf.5*
 %{_mandir}/man5/sssd-ipa.5*
 %{_mandir}/man5/sssd-krb5.5*
@@ -251,7 +254,7 @@ fi
 %defattr(644,root,root,755)
 %attr(755,root,root) /%{_lib}/libnss_sss.so.2
 %attr(755,root,root) /%{_lib}/security/pam_sss.so
-#%attr(755,root,root) %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so
+%attr(755,root,root) %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so
 %{_mandir}/man8/pam_sss.8*
 %{_mandir}/man8/sssd_krb5_locator_plugin.8*
 
@@ -278,7 +281,7 @@ fi
 
 %files -n libipa_hbac
 %defattr(644,root,root,755)
-%attr(755,root,root) %{_libdir}/libipa_hbac.so.*
+%{_libdir}/libipa_hbac.so.*
 
 %files -n libipa_hbac-devel
 %defattr(644,root,root,755)
