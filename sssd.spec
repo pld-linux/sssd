@@ -1,14 +1,17 @@
+# TODO
+# - fix stripping before rpm:
+#   *** WARNING: no sources found for /usr/lib64/libipa_hbac.so.0.0.0 (stripped without sourcefile information?)
 %define		ldb_version 1.1.0
 Summary:	System Security Services Daemon
 Name:		sssd
-Version:	1.6.1
+Version:	1.6.2
 Release:	0.1
 License:	GPL v3+
 Group:		Applications/System
 URL:		http://fedorahosted.org/sssd/
 Source0:	https://fedorahosted.org/released/sssd/%{name}-%{version}.tar.gz
-# Source0-md5:	2da6d0006b70929d4d491e952e808bf5
-Source1:    %{name}.init
+# Source0-md5:	38cf9c8dc8f173e068fcb31b7ee9baf1
+Source1:	%{name}.init
 Patch0:		%{name}-python-config.patch
 Patch1:		%{name}-heimdal.patch
 BuildRequires:	autoconf
@@ -32,6 +35,7 @@ BuildRequires:	libnl-devel
 BuildRequires:	libselinux-devel
 BuildRequires:	libsemanage-devel
 BuildRequires:	libtalloc-devel
+BuildRequires:	libtool
 BuildRequires:	libtool
 BuildRequires:	libunistring-devel
 BuildRequires:	libxml2
@@ -131,12 +135,12 @@ Python applications.
 %patch1 -p1
 
 %build
+%{__libtoolize}
 %{__gettextize}
 %{__aclocal}
 %{__automake}
 %{__autoconf}
-CFLAGS=-Wno-deprecated-declarations
-export CFLAGS
+CFLAGS="-Wno-deprecated-declarations"
 %configure \
 	--with-db-path=%{dbpath} \
 	--with-pipe-path=%{pipepath} \
@@ -167,44 +171,50 @@ rm -rf $RPM_BUILD_ROOT
 # Copy default sssd.conf file
 install -d $RPM_BUILD_ROOT%{_sysconfdir}/sssd
 cp -p src/examples/sssd.conf $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sssd.conf
-cp -p src/config%{_sysconfdir}/sssd.api.conf $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sssd.api.conf
-cp -p src/config%{_sysconfdir}/sssd.api.d/* $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sssd.api.d/
+cd src/config
+cp -p etc/sssd.api.conf $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sssd.api.conf
+cp -p etc/sssd.api.d/* $RPM_BUILD_ROOT%{_sysconfdir}/sssd/sssd.api.d
+cd -
 
 # Copy default logrotate file
 install -d $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d
 cp -p src/examples/logrotate $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/sssd
 
 # Make sure SSSD is able to run on read-only root
-install -d $RPM_BUILD_ROOT/%{_sysconfdir}/rwtab.d
+install -d $RPM_BUILD_ROOT%{_sysconfdir}/rwtab.d
 cp -p src/examples/rwtab $RPM_BUILD_ROOT%{_sysconfdir}/rwtab.d/sssd
+
+# change %{py_sitedir} to %{py_sitescriptdir} for 'noarch' packages!
+%py_ocomp $RPM_BUILD_ROOT%{py_sitedir}
+%py_comp $RPM_BUILD_ROOT%{py_sitedir}
+%py_postclean
 
 # Remove .la files created by libtool
 %{__rm} \
     $RPM_BUILD_ROOT/%{_lib}/libnss_sss.la \
     $RPM_BUILD_ROOT/%{_lib}/security/pam_sss.la \
-    $RPM_BUILD_ROOT/%{ldb_modulesdir}/memberof.la \
-    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_ldap.la \
-    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_proxy.la \
-    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_krb5.la \
-    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_ipa.la \
-    $RPM_BUILD_ROOT/%{_libdir}/sssd/libsss_simple.la \
-    $RPM_BUILD_ROOT/%{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.la \
-    $RPM_BUILD_ROOT/%{_libdir}/libipa_hbac.la \
-    $RPM_BUILD_ROOT/%{py_sitedir}/pysss.la \
-    $RPM_BUILD_ROOT/%{py_sitedir}/pyhbac.la
+    $RPM_BUILD_ROOT%{ldb_modulesdir}/memberof.la \
+    $RPM_BUILD_ROOT%{_libdir}/sssd/libsss_ldap.la \
+    $RPM_BUILD_ROOT%{_libdir}/sssd/libsss_proxy.la \
+    $RPM_BUILD_ROOT%{_libdir}/sssd/libsss_krb5.la \
+    $RPM_BUILD_ROOT%{_libdir}/sssd/libsss_ipa.la \
+    $RPM_BUILD_ROOT%{_libdir}/sssd/libsss_simple.la \
+    $RPM_BUILD_ROOT%{_libdir}/libipa_hbac.la \
+    $RPM_BUILD_ROOT%{py_sitedir}/pysss.la \
+    $RPM_BUILD_ROOT%{py_sitedir}/pyhbac.la
 
 install -p %{SOURCE1} $RPM_BUILD_ROOT/etc/rc.d/init.d/%{name}
 
-touch sssd_tools.lang
-for man in `find $RPM_BUILD_ROOT/%{_mandir}/??/man?/ -type f | sed -e "s#$RPM_BUILD_ROOT/%{_mandir}/##"`; do
-	lang=`echo $man | cut -c 1-2`
-	case `basename $man` in
-		sss_*)
-			echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd_tools.lang
+> sssd_tools.lang
+for man in $(find $RPM_BUILD_ROOT%{_mandir}/??/man? -type f | sed -e "s#$RPM_BUILD_ROOT%{_mandir}/##"); do
+	lang=$(echo $man | cut -c 1-2)
+	case $(basename $man) in
+	sss_*)
+		echo "%lang(${lang}) %{_mandir}/${man}*" >> sssd_tools.lang
 		;;
-		*)
-			echo \%lang\(${lang}\) \%{_mandir}/${man}\* >> sssd.lang
-			;;
+	*)
+		echo "%lang(${lang}) %{_mandir}/${man}*" >> sssd.lang
+		;;
 	esac
 done
 
@@ -230,7 +240,7 @@ fi
 
 %files -f sssd.lang
 %defattr(644,root,root,755)
-%attr(755,root,root) /etc/rc.d/init.d/sssd
+%attr(754,root,root) /etc/rc.d/init.d/sssd
 %defattr(644,root,root,755)
 %attr(755,root,root) %{_sbindir}/sssd
 %dir %{_libexecdir}/%{servicename}
@@ -259,6 +269,7 @@ fi
 %{_mandir}/man8/sssd.8*
 %attr(755,root,root) %{py_sitedir}/pysss.so
 %{py_sitescriptdir}/*.py[co]
+%{py_sitescriptdir}/SSSDConfig-*.egg-info
 
 %files client -f sssd_tools.lang
 %defattr(644,root,root,755)
@@ -302,4 +313,3 @@ fi
 %files -n python-libipa_hbac
 %defattr(644,root,root,755)
 %{py_sitedir}/pyhbac.so
-%{py_sitescriptdir}/*.egg-info
