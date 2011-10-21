@@ -58,6 +58,7 @@ Requires:	%{name}-client = %{version}-%{release}
 Requires:	cyrus-sasl-gssapi
 Requires:	krb5-libs >= 1.9
 Requires:	libldb = %{ldb_version}
+Requires:	rc-scripts >= 0.4.0.10
 Requires:	tdb >= 1.1.3
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
 
