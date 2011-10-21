@@ -33,54 +33,57 @@ fi
 
 start() {
 	# Check if the service is already running?
-	if [ ! -f /var/lock/subsys/sssd ]; then
-		msg_starting "System Security Services Daemon"
-		daemon --fork /usr/sbin/sssd --defaults-file=/etc/sssd/sssd.conf
-		RETVAL=$?
-		[ $RETVAL -eq 0 ] && touch /var/lock/subsys/sssd
-	else
+	if [ -f /var/lock/subsys/sssd ]; then
 		msg_already_running "System Security Services Daemon"
+		return
 	fi
+
+	msg_starting "System Security Services Daemon"
+	daemon --fork /usr/sbin/sssd --defaults-file=/etc/sssd/sssd.conf
+	RETVAL=$?
+	[ $RETVAL -eq 0 ] && touch /var/lock/subsys/sssd
 }
 
 stop() {
-	if [ -f /var/lock/subsys/sssd ]; then
-		# Stop daemons.
-		msg_stopping "System Security Services Daemon"
-		/sbin/start-stop-daemon -q --stop \
-			--retry TERM/600/KILL/10 \
-			-s TERM --pidfile /var/lib/sssd/sssd.pid
-		local result=$?
-		if [ "$result" -eq 0 ]; then
-			ok
-		else
-			fail
-		fi
-
-		rm -f /var/lock/subsys/sssd
-	else
+	if [ ! -f /var/lock/subsys/sssd ]; then
 		msg_not_running "System Security Services Daemon"
+		return
 	fi
+
+	# Stop daemons.
+	msg_stopping "System Security Services Daemon"
+	/sbin/start-stop-daemon -q --stop \
+		--retry TERM/600/KILL/10 \
+		-s TERM --pidfile /var/lib/sssd/sssd.pid
+	local result=$?
+	if [ "$result" -eq 0 ]; then
+		ok
+	else
+		fail
+	fi
+
+	rm -f /var/lock/subsys/sssd
 }
 
 condrestart() {
-	if [ -f /var/lock/subsys/sssd ]; then
-		stop
-		start
-	else
+	if [ ! -f /var/lock/subsys/sssd ]; then
 		msg_not_running "System Security Services Daemon"
 		RETVAL=$1
+		return
 	fi
+
+	stop
+	start
 }
 
 RETVAL=0
 # See how we were called.
 case "$1" in
   start)
-  	start
+	start
 	;;
   stop)
-  	stop
+	stop
 	;;
   restart)
 	stop
