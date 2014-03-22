@@ -1,4 +1,5 @@
 # TODO
+# - pac-responder (currently relies on MIT krb5 >= 1.9)
 # - fix stripping before rpm:
 #   *** WARNING: no sources found for /usr/lib64/libipa_hbac.so.0.0.0 (stripped without sourcefile information?)
 %define		ldb_version 1.1.0
@@ -21,6 +22,7 @@ BuildRequires:	automake
 BuildRequires:	bind-utils
 BuildRequires:	c-ares-devel
 BuildRequires:	check-devel >= 0.9.5
+BuildRequires:	cmocka-devel
 BuildRequires:	cyrus-sasl-devel >= 2
 BuildRequires:	dbus-devel >= 1.0.0
 BuildRequires:	docbook-dtd44-xml
@@ -55,7 +57,6 @@ BuildRequires:	systemd-units
 BuildRequires:	talloc-devel
 BuildRequires:	tdb-devel >= 1.1.3
 BuildRequires:	tevent-devel
-#[lib]cmocka ???
 Requires(post,postun):	/sbin/ldconfig
 Requires(post,preun):	/sbin/chkconfig
 Requires:	%{name}-client = %{version}-%{release}
@@ -287,7 +288,6 @@ cp -p src/examples/logrotate $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/sssd
 install -d $RPM_BUILD_ROOT%{_sysconfdir}/rwtab.d
 cp -p src/examples/rwtab $RPM_BUILD_ROOT%{_sysconfdir}/rwtab.d/sssd
 
-# change %{py_sitedir} to %{py_sitescriptdir} for 'noarch' packages!
 %py_ocomp $RPM_BUILD_ROOT%{py_sitedir}
 %py_comp $RPM_BUILD_ROOT%{py_sitedir}
 %py_ocomp $RPM_BUILD_ROOT%{py_sitescriptdir}

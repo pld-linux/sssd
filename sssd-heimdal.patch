@@ -932,3 +932,15 @@ index db47e0a..c7b9a69 100644
 +                          krb5_timestamp *seconds,
 +                          int32_t *microseconds);
  #endif /* __SSS_KRB5_H__ */
+#--- sssd-1.11.4/src/external/pac_responder.m4.orig	2014-02-17 19:55:32.000000000 +0100
+#+++ sssd-1.11.4/src/external/pac_responder.m4	2014-03-22 17:59:50.707675270 +0100
+#@@ -21,7 +21,8 @@
+#         Kerberos\ 5\ release\ 1.9* | \
+#         Kerberos\ 5\ release\ 1.10* | \
+#         Kerberos\ 5\ release\ 1.11* | \
+#-        Kerberos\ 5\ release\ 1.12*)
+#+        Kerberos\ 5\ release\ 1.12* | \
+#+        heimdal\ *)
+#             krb5_version_ok=yes
+#             AC_MSG_RESULT([yes])
+#             ;;
