@@ -57,7 +57,7 @@ BuildRequires:	systemd-units
 BuildRequires:	talloc-devel
 BuildRequires:	tdb-devel >= 1.1.3
 BuildRequires:	tevent-devel
-Requires(post,postun):	/sbin/ldconfig
+Requires(post):	/sbin/ldconfig
 Requires(post,preun):	/sbin/chkconfig
 Requires:	%{name}-client = %{version}-%{release}
 Requires:	cyrus-sasl-gssapi
@@ -338,7 +338,6 @@ if [ "$1" = "0" ]; then
 	/sbin/chkconfig --del %{name}
 fi
 
-%post	-p /sbin/ldconfig
 %postun	-p /sbin/ldconfig
 
 %post	client -p /sbin/ldconfig
