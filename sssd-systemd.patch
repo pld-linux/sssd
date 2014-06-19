@@ -1,0 +1,44 @@
+--- sssd-1.11.6/src/conf_macros.m4.orig	2014-06-03 16:31:33.000000000 +0200
++++ sssd-1.11.6/src/conf_macros.m4	2014-06-19 08:53:15.746551619 +0200
+@@ -141,14 +141,15 @@
+   fi
+ 
+   if test x"$with_initscript" = xsysv || \
+-     test x"$with_initscript" = xsystemd; then
++     test x"$with_initscript" = xsystemd || \
++     test x"$with_initscript" = xsysv,systemd; then
+         initscript=$with_initscript
+   else
+       AC_MSG_ERROR([Illegal value -$with_initscript- for option --with-initscript])
+   fi
+ 
+-  AM_CONDITIONAL([HAVE_SYSV], [test x"$initscript" = xsysv])
+-  AM_CONDITIONAL([HAVE_SYSTEMD_UNIT], [test x"$initscript" = xsystemd])
++  AM_CONDITIONAL([HAVE_SYSV], [test x"${initscript#sysv}" != "x${initscript}"])
++  AM_CONDITIONAL([HAVE_SYSTEMD_UNIT], [test x"${initscript%systemd}" != x"${initscript}"])
+   AC_MSG_NOTICE([Will use init script type: $initscript])
+   ])
+ 
+--- sssd-1.11.6/Makefile.am.orig	2014-06-19 17:11:18.599262100 +0200
++++ sssd-1.11.6/Makefile.am	2014-06-19 17:20:54.085916775 +0200
+@@ -2181,7 +2181,8 @@
+ if HAVE_SYSTEMD_UNIT
+     systemdunit_DATA += \
+         src/sysv/systemd/sssd.service
+-else
++endif
++if HAVE_SYSV
+ if HAVE_SUSE
+     init_SCRIPTS += \
+         src/sysv/SUSE/sssd
+--- sssd-1.11.6/configure.ac.orig	2014-06-19 17:11:23.749261993 +0200
++++ sssd-1.11.6/configure.ac	2014-06-19 17:33:50.355900593 +0200
+@@ -172,7 +172,7 @@
+ fi
+ 
+ WITH_INITSCRIPT
+-if test x$initscript = xsystemd; then
++if test x"${initscript%systemd}" != x"${initscript}"; then
+     WITH_SYSTEMD_UNIT_DIR
+ fi
+ 

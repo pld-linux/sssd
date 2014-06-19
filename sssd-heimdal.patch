@@ -1,6 +1,33 @@
---- sssd-1.11.4/Makefile.am.orig	2014-02-17 19:55:32.000000000 +0100
-+++ sssd-1.11.4/Makefile.am	2014-03-16 09:12:48.437424185 +0100
-@@ -1617,8 +1617,19 @@ libsss_krb5_common_la_SOURCES = \
+--- sssd-1.11.6/Makefile.am.orig	2014-06-03 16:31:33.000000000 +0200
++++ sssd-1.11.6/Makefile.am	2014-06-18 20:59:38.947444057 +0200
+@@ -1550,8 +1550,6 @@ test_utils_LDADD = \
+ test_search_bases_SOURCES = \
+     $(sssd_be_SOURCES) \
+     src/util/sss_ldap.c \
+-    src/util/sss_krb5.c \
+-    src/util/find_uid.c \
+     src/util/user_info_msg.c \
+     src/tests/cmocka/test_search_bases.c
+ test_search_bases_CFLAGS = \
+@@ -1574,8 +1572,6 @@ test_search_bases_LDADD = \
+ ad_access_filter_tests_SOURCES = \
+     $(sssd_be_SOURCES) \
+     src/util/sss_ldap.c \
+-    src/util/sss_krb5.c \
+-    src/util/find_uid.c \
+     src/util/user_info_msg.c \
+     src/providers/ad/ad_common.c \
+     src/tests/cmocka/test_ad_access_filter.c
+@@ -1599,8 +1595,6 @@ ad_access_filter_tests_LDADD = \
+ ad_common_tests_SOURCES = \
+     $(sssd_be_SOURCES) \
+     src/util/sss_ldap.c \
+-    src/util/sss_krb5.c \
+-    src/util/find_uid.c \
+     src/util/user_info_msg.c \
+     src/tests/cmocka/test_ad_common.c
+ ad_common_tests_CFLAGS = \
+@@ -1830,12 +1824,18 @@ libsss_krb5_common_la_SOURCES = \
      src/providers/krb5/krb5_auth.c \
      src/providers/krb5/krb5_access.c \
      src/providers/krb5/krb5_child_handler.c \
@@ -8,20 +35,20 @@
 +    src/providers/krb5/krb5_init_shared.c \
 +    src/util/sss_krb5.c \
 +    src/util/find_uid.c
-+
-+libsss_krb5_common_la_LIBADD = \
+ libsss_krb5_common_la_LIBADD = \
+-    $(KEYUTILS_LIBS)
 +    $(KEYUTILS_LIBS) \
 +    $(SYSTEMD_LOGIN_LIBS) \
 +    $(KRB5_LIBS) \
 +    libsss_debug.la
-+
  libsss_krb5_common_la_LDFLAGS = \
-+    $(SYSTEMD_LOGIN_CFLAGS) \
-+    $(KRB5_CFLAGS) \
      -avoid-version
+ libsss_krb5_common_la_CFLAGS = \
++    $(SYSTEMD_LOGIN_CFLAGS) \
+     $(KRB5_CFLAGS)
  
  libsss_ldap_la_SOURCES = \
-@@ -1672,15 +1683,12 @@ libsss_simple_la_LDFLAGS = \
+@@ -1889,9 +1889,7 @@ libsss_simple_la_LDFLAGS = \
      -module
  
  libsss_krb5_la_SOURCES = \
@@ -31,14 +58,8 @@
 +    src/providers/krb5/krb5_init.c
  libsss_krb5_la_CFLAGS = \
      $(AM_CFLAGS) \
-     $(DHASH_CFLAGS)
- libsss_krb5_la_LIBADD = \
-     $(DHASH_LIBS) \
--    $(KEYUTILS_LIBS) \
-     $(KRB5_LIBS) \
-     libsss_krb5_common.la
- libsss_krb5_la_LDFLAGS = \
-@@ -1720,12 +1728,10 @@ libsss_ipa_la_SOURCES = \
+     $(DHASH_CFLAGS) \
+@@ -1937,12 +1935,10 @@ libsss_ipa_la_SOURCES = \
      src/providers/ad/ad_srv.c \
      src/providers/ad/ad_domain_info.c \
      src/util/user_info_msg.c \
@@ -53,15 +74,7 @@
      $(DHASH_CFLAGS) \
      $(NDR_NBT_CFLAGS) \
      $(KRB5_CFLAGS)
-@@ -1733,7 +1739,6 @@ libsss_ipa_la_LIBADD = \
-     $(OPENLDAP_LIBS) \
-     $(DHASH_LIBS) \
-     $(NDR_NBT_LIBS) \
--    $(KEYUTILS_LIBS) \
-     $(KRB5_LIBS) \
-     libsss_ldap_common.la \
-     libsss_krb5_common.la \
-@@ -1772,21 +1777,20 @@ libsss_ad_la_SOURCES = \
+@@ -1988,9 +1984,7 @@ libsss_ad_la_SOURCES = \
      src/providers/ad/ad_subdomains.h \
      src/providers/ad/ad_domain_info.c \
      src/providers/ad/ad_domain_info.h \
@@ -70,35 +83,16 @@
 -    src/util/sss_krb5.c \
      src/util/sss_ldap.c
  
+ if BUILD_SUDO
+@@ -2000,7 +1994,7 @@ endif
+ 
  libsss_ad_la_CFLAGS = \
      $(AM_CFLAGS) \
 -    $(LDAP_CFLAGS) \
 +    $(OPENLDAP_CFLAGS) \
-+    $(SASL_CFLAGS) \
+     $(SASL_CFLAGS) \
      $(DHASH_CFLAGS) \
      $(KRB5_CFLAGS) \
-     $(NDR_NBT_CFLAGS)
- libsss_ad_la_LIBADD = \
-     $(OPENLDAP_LIBS) \
-+    $(SASL_LIBS) \
-     $(DHASH_LIBS) \
--    $(KEYUTILS_LIBS) \
-     $(KRB5_LIBS) \
-     $(NDR_NBT_LIBS) \
-     libsss_ldap_common.la \
-diff --git a/configure.ac b/configure.ac
-index 9934b50..a46e26d 100644
---- a/configure.ac
-+++ b/configure.ac
-@@ -262,7 +262,7 @@ fi
- 
- AM_CHECK_INOTIFY
- 
--AC_CHECK_HEADERS([sasl/sasl.h],,AC_MSG_ERROR([Could not find SASL headers]))
-+PKG_CHECK_MODULES([SASL], [libsasl2], [], [AC_MSG_ERROR([Could not find SASL library])])
- 
- AC_CACHE_CHECK([whether compiler supports __attribute__((destructor))],
-                sss_client_cv_attribute_destructor,
 diff --git a/src/external/krb5.m4 b/src/external/krb5.m4
 index 1a50bf1..54c5883 100644
 --- a/src/external/krb5.m4
@@ -178,11 +172,9 @@ index 725687d..586c7dd 100644
  
          ret = cbfunc(cbdata, socktype, ai->ai_addr);
          if (ret != 0) {
-diff --git a/src/providers/ad/ad_common.c b/src/providers/ad/ad_common.c
-index ab62d64..7b9e513 100644
---- a/src/providers/ad/ad_common.c
-+++ b/src/providers/ad/ad_common.c
-@@ -525,7 +525,7 @@ errno_t
+--- sssd-1.11.6/src/providers/ad/ad_common.c.orig	2014-06-03 16:31:33.000000000 +0200
++++ sssd-1.11.6/src/providers/ad/ad_common.c	2014-06-18 21:33:34.690734956 +0200
+@@ -536,7 +536,7 @@ errno_t
  ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
                   const char *primary_servers,
                   const char *backup_servers,
@@ -191,13 +183,13 @@ index ab62d64..7b9e513 100644
                   const char *ad_service,
                   const char *ad_gc_service,
                   const char *ad_domain,
-@@ -585,13 +585,13 @@ ad_failover_init(TALLOC_CTX *mem_ctx, struct be_ctx *bectx,
+@@ -596,13 +596,13 @@ ad_failover_init(TALLOC_CTX *mem_ctx, st
      service->sdap->kinit_service_name = service->krb5_service->name;
      service->gc->kinit_service_name = service->krb5_service->name;
  
 -    if (!krb5_realm) {
 +    if (!krb5_realm_str) {
-         DEBUG(SSSDBG_CRIT_FAILURE, ("No Kerberos realm set\n"));
+         DEBUG(SSSDBG_CRIT_FAILURE, "No Kerberos realm set\n");
          ret = EINVAL;
          goto done;
      }
@@ -207,7 +199,7 @@ index ab62d64..7b9e513 100644
      if (!service->krb5_service->realm) {
          ret = ENOMEM;
          goto done;
-@@ -795,7 +795,7 @@ ad_set_ad_id_options(struct ad_options *ad_opts,
+@@ -810,7 +810,7 @@ ad_set_ad_id_options(struct ad_options *
                       struct sdap_options *id_opts)
  {
      errno_t ret;
@@ -216,7 +208,7 @@ index ab62d64..7b9e513 100644
      char *keytab_path;
  
      /* We only support Kerberos password policy with AD, so
-@@ -810,20 +810,20 @@ ad_set_ad_id_options(struct ad_options *ad_opts,
+@@ -825,20 +825,20 @@ ad_set_ad_id_options(struct ad_options *
      }
  
      /* Set the Kerberos Realm for GSSAPI */
@@ -225,7 +217,7 @@ index ab62d64..7b9e513 100644
 +    krb5_realm_str = dp_opt_get_string(ad_opts->basic, AD_KRB5_REALM);
 +    if (!krb5_realm_str) {
          /* Should be impossible, this is set in ad_get_common_options() */
-         DEBUG(SSSDBG_FATAL_FAILURE, ("No Kerberos realm\n"));
+         DEBUG(SSSDBG_FATAL_FAILURE, "No Kerberos realm\n");
          ret = EINVAL;
          goto done;
      }
@@ -234,14 +226,14 @@ index ab62d64..7b9e513 100644
 +    ret = dp_opt_set_string(id_opts->basic, SDAP_KRB5_REALM, krb5_realm_str);
      if (ret != EOK) goto done;
      DEBUG(SSSDBG_CONF_SETTINGS,
-           ("Option %s set to %s\n",
+           "Option %s set to %s\n",
             id_opts->basic[SDAP_KRB5_REALM].opt_name,
--           krb5_realm));
-+           krb5_realm_str));
+-           krb5_realm);
++           krb5_realm_str);
  
      keytab_path = dp_opt_get_string(ad_opts->basic, AD_KEYTAB);
      if (keytab_path) {
-@@ -983,7 +983,7 @@ ad_get_auth_options(TALLOC_CTX *mem_ctx,
+@@ -998,7 +998,7 @@ ad_get_auth_options(TALLOC_CTX *mem_ctx,
      errno_t ret;
      struct dp_option *krb5_options;
      const char *ad_servers;
@@ -250,7 +242,7 @@ index ab62d64..7b9e513 100644
  
      TALLOC_CTX *tmp_ctx = talloc_new(NULL);
      if (!tmp_ctx) return ENOMEM;
-@@ -1010,8 +1010,8 @@ ad_get_auth_options(TALLOC_CTX *mem_ctx,
+@@ -1025,8 +1025,8 @@ ad_get_auth_options(TALLOC_CTX *mem_ctx,
  
      /* Set krb5 realm */
      /* Set the Kerberos Realm for GSSAPI */
@@ -259,9 +251,9 @@ index ab62d64..7b9e513 100644
 +    krb5_realm_str = dp_opt_get_string(ad_opts->basic, AD_KRB5_REALM);
 +    if (!krb5_realm_str) {
          /* Should be impossible, this is set in ad_get_common_options() */
-         DEBUG(SSSDBG_FATAL_FAILURE, ("No Kerberos realm\n"));
+         DEBUG(SSSDBG_FATAL_FAILURE, "No Kerberos realm\n");
          ret = EINVAL;
-@@ -1021,12 +1021,12 @@ ad_get_auth_options(TALLOC_CTX *mem_ctx,
+@@ -1036,12 +1036,12 @@ ad_get_auth_options(TALLOC_CTX *mem_ctx,
      /* Force the kerberos realm to match the AD_KRB5_REALM (which may have
       * been upper-cased in ad_common_options()
       */
@@ -269,35 +261,62 @@ index ab62d64..7b9e513 100644
 +    ret = dp_opt_set_string(krb5_options, KRB5_REALM, krb5_realm_str);
      if (ret != EOK) goto done;
      DEBUG(SSSDBG_CONF_SETTINGS,
-           ("Option %s set to %s\n",
+           "Option %s set to %s\n",
             krb5_options[KRB5_REALM].opt_name,
--           krb5_realm));
-+           krb5_realm_str));
+-           krb5_realm);
++           krb5_realm_str);
  
      /* Set flag that controls whether we want to write the
       * kdcinfo files at all
-diff --git a/src/providers/krb5/krb5_child.c b/src/providers/krb5/krb5_child.c
-index 42cfbbf..073c50e 100644
---- a/src/providers/krb5/krb5_child.c
-+++ b/src/providers/krb5/krb5_child.c
-@@ -77,7 +77,7 @@ static krb5_error_code get_changepw_options(krb5_context ctx,
-         return kerr;
-     }
+--- sssd-1.11.6/src/providers/krb5/krb5_child.c.orig	2014-06-03 16:31:33.000000000 +0200
++++ sssd-1.11.6/src/providers/krb5/krb5_child.c	2014-06-18 22:16:37.020681134 +0200
+@@ -117,7 +117,7 @@ static krb5_error_code set_lifetime_opti
+     return 0;
+ }
  
+-static void set_canonicalize_option(krb5_get_init_creds_opt *opts)
++static void set_canonicalize_option(krb5_context ctx, krb5_get_init_creds_opt *opts)
+ {
+     int canonicalize = 0;
+     char *tmp_str;
+@@ -128,24 +128,24 @@ static void set_canonicalize_option(krb5
+     }
+     DEBUG(SSSDBG_CONF_SETTINGS, "%s is set to [%s]\n",
+           SSSD_KRB5_CANONICALIZE, tmp_str ? tmp_str : "not set");
+-    sss_krb5_get_init_creds_opt_set_canonicalize(opts, canonicalize);
++    sss_krb5_get_init_creds_opt_set_canonicalize(ctx, opts, canonicalize);
+ }
+ 
+ static void set_changepw_options(krb5_context ctx,
+                                  krb5_get_init_creds_opt *options)
+ {
 -    sss_krb5_get_init_creds_opt_set_canonicalize(options, 0);
 +    sss_krb5_get_init_creds_opt_set_canonicalize(ctx, options, 0);
      krb5_get_init_creds_opt_set_forwardable(options, 0);
      krb5_get_init_creds_opt_set_proxiable(options, 0);
      krb5_get_init_creds_opt_set_renew_life(options, 0);
-@@ -88,6 +88,7 @@ static krb5_error_code get_changepw_options(krb5_context ctx,
-     return 0;
+     krb5_get_init_creds_opt_set_tkt_life(options, 5*60);
  }
+ 
+-static void revert_changepw_options(krb5_get_init_creds_opt *options)
++static void revert_changepw_options(krb5_context ctx, krb5_get_init_creds_opt *options)
+ {
+     krb5_error_code kerr;
+ 
+-    set_canonicalize_option(options);
++    set_canonicalize_option(ctx, options);
+ 
+     /* Currently we do not set forwardable and proxiable explicitly, the flags
+      * must be removed so that libkrb5 can take the defaults from krb5.conf */
+@@ -159,6 +159,7 @@ static void revert_changepw_options(krb5
+ }
+ 
  
 +#ifdef HAVE_PAC_RESPONDER
  static errno_t sss_send_pac(krb5_authdata **pac_authdata)
  {
      struct sss_cli_req_data sss_data;
-@@ -107,6 +108,7 @@ static errno_t sss_send_pac(krb5_authdata **pac_authdata)
+@@ -178,6 +179,7 @@ static errno_t sss_send_pac(krb5_authdat
  
      return EOK;
  }
@@ -305,7 +324,7 @@ index 42cfbbf..073c50e 100644
  
  static void sss_krb5_expire_callback_func(krb5_context context, void *data,
                                            krb5_timestamp password_expiration,
-@@ -395,7 +397,8 @@ static krb5_error_code create_empty_cred(krb5_context ctx, krb5_principal princ,
+@@ -469,7 +471,8 @@ static krb5_error_code create_empty_cred
  {
      krb5_error_code kerr;
      krb5_creds *cred = NULL;
@@ -315,7 +334,7 @@ index 42cfbbf..073c50e 100644
  
      cred = calloc(sizeof(krb5_creds), 1);
      if (cred == NULL) {
-@@ -409,12 +412,12 @@ static krb5_error_code create_empty_cred(krb5_context ctx, krb5_principal princ,
+@@ -483,12 +486,12 @@ static krb5_error_code create_empty_cred
          goto done;
      }
  
@@ -329,9 +348,9 @@ index 42cfbbf..073c50e 100644
 -                                    krb5_realm->length, krb5_realm->data, 0);
 +                                    realm_length, realm_name, 0);
      if (kerr != 0) {
-         DEBUG(1, ("krb5_build_principal_ext failed.\n"));
+         DEBUG(SSSDBG_CRIT_FAILURE, "krb5_build_principal_ext failed.\n");
          goto done;
-@@ -670,7 +673,8 @@ static errno_t add_ticket_times_and_upn_to_response(struct krb5_req *kr)
+@@ -747,7 +750,8 @@ static errno_t add_ticket_times_and_upn_
          goto done;
      }
  
@@ -339,18 +358,18 @@ index 42cfbbf..073c50e 100644
 +    kerr = sss_krb5_unparse_name_ext(kr->ctx, kr->creds->client,
 +                                     &upn, &upn_len);
      if (kerr != 0) {
-         DEBUG(SSSDBG_OP_FAILURE, ("krb5_unparse_name failed.\n"));
+         DEBUG(SSSDBG_OP_FAILURE, "krb5_unparse_name failed.\n");
          goto done;
-@@ -678,7 +682,7 @@ static errno_t add_ticket_times_and_upn_to_response(struct krb5_req *kr)
+@@ -755,7 +759,7 @@ static errno_t add_ticket_times_and_upn_
  
      ret = pam_add_response(kr->pd, SSS_KRB5_INFO_UPN, upn_len,
                             (uint8_t *) upn);
 -    krb5_free_unparsed_name(kr->ctx, upn);
 +    sss_krb5_free_unparsed_name(kr->ctx, upn);
      if (ret != EOK) {
-         DEBUG(1, ("pack_response_packet failed.\n"));
+         DEBUG(SSSDBG_CRIT_FAILURE, "pack_response_packet failed.\n");
          goto done;
-@@ -700,7 +704,9 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
+@@ -777,7 +781,9 @@ static krb5_error_code validate_tgt(stru
      krb5_principal validation_princ = NULL;
      bool realm_entry_found = false;
      krb5_ccache validation_ccache = NULL;
@@ -360,7 +379,7 @@ index 42cfbbf..073c50e 100644
  
      memset(&keytab, 0, sizeof(keytab));
      kerr = krb5_kt_resolve(kr->ctx, kr->keytab, &keytab);
-@@ -794,6 +800,7 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
+@@ -871,6 +877,7 @@ static krb5_error_code validate_tgt(stru
          goto done;
      }
  
@@ -368,7 +387,7 @@ index 42cfbbf..073c50e 100644
      /* Try to find and send the PAC to the PAC responder.
       * Failures are not critical. */
      if (kr->send_pac) {
-@@ -816,6 +823,7 @@ static krb5_error_code validate_tgt(struct krb5_req *kr)
+@@ -893,6 +900,7 @@ static krb5_error_code validate_tgt(stru
              kerr = 0;
          }
      }
@@ -376,35 +395,16 @@ index 42cfbbf..073c50e 100644
  
  done:
      if (validation_ccache != NULL) {
-@@ -836,7 +844,8 @@ done:
- 
- }
- 
--static void krb5_set_canonicalize(krb5_get_init_creds_opt *opts)
-+static void krb5_set_canonicalize(krb5_context ctx,
-+                                  krb5_get_init_creds_opt *opts)
- {
-     int canonicalize = 0;
-     char *tmp_str;
-@@ -847,7 +856,7 @@ static void krb5_set_canonicalize(krb5_get_init_creds_opt *opts)
-     }
-     DEBUG(SSSDBG_CONF_SETTINGS, ("%s is set to [%s]\n",
-           SSSD_KRB5_CANONICALIZE, tmp_str ? tmp_str : "not set"));
--    sss_krb5_get_init_creds_opt_set_canonicalize(opts, canonicalize);
-+    sss_krb5_get_init_creds_opt_set_canonicalize(ctx, opts, canonicalize);
- }
- 
- static krb5_error_code get_and_save_tgt_with_keytab(krb5_context ctx,
-@@ -865,7 +874,7 @@ static krb5_error_code get_and_save_tgt_with_keytab(krb5_context ctx,
+@@ -928,7 +936,7 @@ static krb5_error_code get_and_save_tgt_
      krb5_get_init_creds_opt_set_address_list(&options, NULL);
      krb5_get_init_creds_opt_set_forwardable(&options, 0);
      krb5_get_init_creds_opt_set_proxiable(&options, 0);
--    krb5_set_canonicalize(&options);
-+    krb5_set_canonicalize(ctx, &options);
+-    set_canonicalize_option(&options);
++    set_canonicalize_option(ctx, &options);
  
      kerr = krb5_get_init_creds_keytab(ctx, &creds, princ, keytab, 0, NULL,
                                        &options);
-@@ -1094,9 +1103,9 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
+@@ -1157,9 +1165,9 @@ static errno_t changepw_child(struct krb
  
      memset(&result_code_string, 0, sizeof(krb5_data));
      memset(&result_string, 0, sizeof(krb5_data));
@@ -417,32 +417,39 @@ index 42cfbbf..073c50e 100644
  
      if (kerr == KRB5_KDC_UNREACH) {
          return ERR_NETWORK_IO;
-@@ -1109,7 +1118,8 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
- 
+@@ -1173,7 +1181,7 @@ static errno_t changepw_child(struct krb
          if (result_code_string.length > 0) {
-             DEBUG(1, ("krb5_change_password failed [%d][%.*s].\n", result_code,
--                      result_code_string.length, result_code_string.data));
-+                      (int) result_code_string.length,
-+                      (char *) result_code_string.data));
+             DEBUG(SSSDBG_CRIT_FAILURE,
+                   "krb5_change_password failed [%d][%.*s].\n", result_code,
+-                      result_code_string.length, result_code_string.data);
++                      (int) result_code_string.length, (char *) result_code_string.data);
              user_error_message = talloc_strndup(kr->pd, result_code_string.data,
                                                  result_code_string.length);
              if (user_error_message == NULL) {
-@@ -1117,9 +1127,11 @@ static errno_t changepw_child(struct krb5_req *kr, bool prelim)
+@@ -1181,10 +1189,10 @@ static errno_t changepw_child(struct krb
              }
          }
  
 -        if (result_string.length > 0 && result_string.data[0] != '\0') {
-+        if (result_string.length > 0 &&
-+            ((char *) result_string.data)[0] != '\0') {
-             DEBUG(1, ("krb5_change_password failed [%d][%.*s].\n", result_code,
--                      result_string.length, result_string.data));
-+                      (int) result_string.length,
-+                      (char *) result_string.data));
++        if (result_string.length > 0 && ((char *) result_string.data)[0] != '\0') {
+             DEBUG(SSSDBG_CRIT_FAILURE,
+                   "krb5_change_password failed [%d][%.*s].\n", result_code,
+-                      result_string.length, result_string.data);
++                      (int) result_string.length, (char *) result_string.data);
              talloc_free(user_error_message);
              user_error_message = talloc_strndup(kr->pd, result_string.data,
                                                  result_string.length);
-@@ -1695,7 +1707,8 @@ static errno_t k5c_recv_data(struct krb5_req *kr, int fd, uint32_t *offline)
- static int k5c_setup_fast(struct krb5_req *kr, char *lifetime_str, bool demand)
+@@ -1227,7 +1235,7 @@ static errno_t changepw_child(struct krb
+ 
+     /* We changed some of the gic options for the password change, now we have
+      * to change them back to get a fresh TGT. */
+-    revert_changepw_options(kr->options);
++    revert_changepw_options(kr->ctx, kr->options);
+ 
+     kerr = get_and_save_tgt(kr, newpassword);
+ 
+@@ -1765,7 +1773,8 @@ static errno_t k5c_recv_data(struct krb5
+ static int k5c_setup_fast(struct krb5_req *kr, bool demand)
  {
      krb5_principal fast_princ_struct;
 -    krb5_data *realm_data;
@@ -451,7 +458,7 @@ index 42cfbbf..073c50e 100644
      char *fast_principal_realm;
      char *fast_principal;
      krb5_error_code kerr;
-@@ -1726,8 +1739,11 @@ static int k5c_setup_fast(struct krb5_req *kr, char *lifetime_str, bool demand)
+@@ -1793,8 +1802,11 @@ static int k5c_setup_fast(struct krb5_re
              return KRB5KRB_ERR_GENERIC;
          }
          free(tmp_str);
@@ -463,21 +470,19 @@ index 42cfbbf..073c50e 100644
 +        fast_principal_realm = talloc_asprintf(kr, "%.*s",
 +                                               realm_length, realm_name);
          if (!fast_principal_realm) {
-             DEBUG(1, ("talloc_asprintf failed.\n"));
+             DEBUG(SSSDBG_CRIT_FAILURE, "talloc_asprintf failed.\n");
              return ENOMEM;
-@@ -1889,7 +1905,7 @@ static int k5c_setup(struct krb5_req *kr, uint32_t offline)
+@@ -1928,7 +1940,7 @@ static int k5c_setup(struct krb5_req *kr
      }
  
      if (!offline) {
--        krb5_set_canonicalize(kr->options);
-+        krb5_set_canonicalize(kr->ctx, kr->options);
+-        set_canonicalize_option(kr->options);
++        set_canonicalize_option(kr->ctx, kr->options);
  
          use_fast_str = getenv(SSSD_KRB5_USE_FAST);
          if (use_fast_str == NULL || strcasecmp(use_fast_str, "never") == 0) {
-diff --git a/src/providers/krb5/krb5_common.c b/src/providers/krb5/krb5_common.c
-index c40f0dd..4ab359e 100644
---- a/src/providers/krb5/krb5_common.c
-+++ b/src/providers/krb5/krb5_common.c
+--- sssd-1.11.6/src/providers/krb5/krb5_common.c.orig	2014-06-03 16:31:33.000000000 +0200
++++ sssd-1.11.6/src/providers/krb5/krb5_common.c	2014-06-18 22:23:18.480672769 +0200
 @@ -33,7 +33,7 @@
  #include "providers/krb5/krb5_opts.h"
  #include "providers/krb5/krb5_utils.h"
@@ -496,7 +501,7 @@ index c40f0dd..4ab359e 100644
  /* source default_ccache_name from krb5.conf */
  static errno_t sss_get_system_ccname_template(TALLOC_CTX *mem_ctx,
                                                char **ccname)
-@@ -895,7 +895,7 @@ errno_t krb5_install_offline_callback(struct be_ctx *be_ctx,
+@@ -912,7 +912,7 @@ errno_t krb5_install_offline_callback(st
  {
      int ret;
      struct remove_info_files_ctx *ctx;
@@ -504,8 +509,8 @@ index c40f0dd..4ab359e 100644
 +    const char *krb5_realm_str;
  
      if (krb5_ctx->service == NULL || krb5_ctx->service->name == NULL) {
-         DEBUG(1, ("Missing KDC service name!\n"));
-@@ -908,14 +908,14 @@ errno_t krb5_install_offline_callback(struct be_ctx *be_ctx,
+         DEBUG(SSSDBG_CRIT_FAILURE, "Missing KDC service name!\n");
+@@ -925,14 +925,14 @@ errno_t krb5_install_offline_callback(st
          return ENOMEM;
      }
  
@@ -513,7 +518,7 @@ index c40f0dd..4ab359e 100644
 -    if (krb5_realm == NULL) {
 +    krb5_realm_str = dp_opt_get_cstring(krb5_ctx->opts, KRB5_REALM);
 +    if (krb5_realm_str == NULL) {
-         DEBUG(1, ("Missing krb5_realm option!\n"));
+         DEBUG(SSSDBG_CRIT_FAILURE, "Missing krb5_realm option!\n");
          ret = EINVAL;
          goto done;
      }
@@ -521,9 +526,9 @@ index c40f0dd..4ab359e 100644
 -    ctx->realm = talloc_strdup(ctx, krb5_realm);
 +    ctx->realm = talloc_strdup(ctx, krb5_realm_str);
      if (ctx->realm == NULL) {
-         DEBUG(1, ("talloc_strdup failed!\n"));
+         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed!\n");
          ret = ENOMEM;
-@@ -950,19 +950,19 @@ done:
+@@ -967,19 +967,19 @@ done:
  errno_t krb5_install_sigterm_handler(struct tevent_context *ev,
                                       struct krb5_ctx *krb5_ctx)
  {
@@ -538,20 +543,18 @@ index c40f0dd..4ab359e 100644
 -    if (krb5_realm == NULL) {
 +    krb5_realm_str = dp_opt_get_cstring(krb5_ctx->opts, KRB5_REALM);
 +    if (krb5_realm_str == NULL) {
-         DEBUG(1, ("Missing krb5_realm option!\n"));
+         DEBUG(SSSDBG_CRIT_FAILURE, "Missing krb5_realm option!\n");
          return EINVAL;
      }
  
 -    sig_realm = talloc_strdup(krb5_ctx, krb5_realm);
 +    sig_realm = talloc_strdup(krb5_ctx, krb5_realm_str);
      if (sig_realm == NULL) {
-         DEBUG(1, ("talloc_strdup failed!\n"));
+         DEBUG(SSSDBG_CRIT_FAILURE, "talloc_strdup failed!\n");
          return ENOMEM;
-diff --git a/src/providers/krb5/krb5_init.c b/src/providers/krb5/krb5_init.c
-index 91f701a..fb7304b 100644
---- a/src/providers/krb5/krb5_init.c
-+++ b/src/providers/krb5/krb5_init.c
-@@ -64,7 +64,7 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
+--- sssd-1.11.6/src/providers/krb5/krb5_init.c.orig	2014-06-03 16:31:33.000000000 +0200
++++ sssd-1.11.6/src/providers/krb5/krb5_init.c	2014-06-18 22:43:53.080647036 +0200
+@@ -64,7 +64,7 @@ int sssm_krb5_auth_init(struct be_ctx *b
      const char *krb5_backup_servers;
      const char *krb5_kpasswd_servers;
      const char *krb5_backup_kpasswd_servers;
@@ -560,7 +563,7 @@ index 91f701a..fb7304b 100644
      const char *errstr;
      int errval;
      int errpos;
-@@ -103,15 +103,15 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
+@@ -103,15 +103,15 @@ int sssm_krb5_auth_init(struct be_ctx *b
      krb5_servers = dp_opt_get_string(ctx->opts, KRB5_KDC);
      krb5_backup_servers = dp_opt_get_string(ctx->opts, KRB5_BACKUP_KDC);
  
@@ -568,7 +571,7 @@ index 91f701a..fb7304b 100644
 -    if (krb5_realm == NULL) {
 +    krb5_realm_str = dp_opt_get_string(ctx->opts, KRB5_REALM);
 +    if (krb5_realm_str == NULL) {
-         DEBUG(0, ("Missing krb5_realm option!\n"));
+         DEBUG(SSSDBG_FATAL_FAILURE, "Missing krb5_realm option!\n");
          return EINVAL;
      }
  
@@ -579,7 +582,7 @@ index 91f701a..fb7304b 100644
                              dp_opt_get_bool(krb5_options->opts,
                                              KRB5_USE_KDCINFO),
                              &ctx->service);
-@@ -137,7 +137,7 @@ int sssm_krb5_auth_init(struct be_ctx *bectx,
+@@ -138,7 +138,7 @@ int sssm_krb5_auth_init(struct be_ctx *b
      } else {
          ret = krb5_service_init(ctx, bectx,
                                  SSS_KRB5KPASSWD_FO_SRV, krb5_kpasswd_servers,
@@ -588,21 +591,19 @@ index 91f701a..fb7304b 100644
                                  dp_opt_get_bool(krb5_options->opts,
                                                  KRB5_USE_KDCINFO),
                                  &ctx->kpasswd_service);
-diff --git a/src/providers/ldap/ldap_child.c b/src/providers/ldap/ldap_child.c
-index 19c838d..16f724b 100644
---- a/src/providers/ldap/ldap_child.c
-+++ b/src/providers/ldap/ldap_child.c
-@@ -97,7 +97,7 @@ static errno_t unpack_buffer(uint8_t *buf, size_t size,
+--- sssd-1.11.6/src/providers/ldap/ldap_child.c.orig	2014-06-03 16:31:33.000000000 +0200
++++ sssd-1.11.6/src/providers/ldap/ldap_child.c	2014-06-19 07:25:44.383327744 +0200
+@@ -97,7 +97,7 @@ static errno_t unpack_buffer(uint8_t *bu
  
      /* ticket lifetime */
      SAFEALIGN_COPY_INT32_CHECK(&ibuf->lifetime, buf + p, size, &p);
--    DEBUG(SSSDBG_TRACE_LIBS, ("lifetime: %d\n", ibuf->lifetime));
-+    DEBUG(SSSDBG_TRACE_LIBS, ("lifetime: %d\n", (int)ibuf->lifetime));
+-    DEBUG(SSSDBG_TRACE_LIBS, "lifetime: %d\n", ibuf->lifetime);
++    DEBUG(SSSDBG_TRACE_LIBS, "lifetime: %d\n", (int)ibuf->lifetime);
  
      return EOK;
  }
-@@ -310,7 +310,8 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
-         DEBUG(SSSDBG_CONF_SETTINGS, ("Will canonicalize principals\n"));
+@@ -310,7 +310,8 @@ static krb5_error_code ldap_child_get_tg
+         DEBUG(SSSDBG_CONF_SETTINGS, "Will canonicalize principals\n");
          canonicalize = 1;
      }
 -    sss_krb5_get_init_creds_opt_set_canonicalize(&options, canonicalize);
@@ -611,20 +612,20 @@ index 19c838d..16f724b 100644
  
      krberr = krb5_get_init_creds_keytab(context, &my_creds, kprinc,
                                          keytab, 0, NULL, &options);
-@@ -343,8 +344,7 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
+@@ -343,8 +344,7 @@ static krb5_error_code ldap_child_get_tg
      }
-     DEBUG(SSSDBG_TRACE_INTERNAL, ("credentials stored\n"));
+     DEBUG(SSSDBG_TRACE_INTERNAL, "credentials stored\n");
  
 -#ifdef HAVE_KRB5_GET_TIME_OFFSETS
 -    krberr = krb5_get_time_offsets(context, &kdc_time_offset,
 +    krberr = sss_krb5_get_time_offsets(context, &kdc_time_offset,
              &kdc_time_offset_usec);
      if (krberr) {
-         DEBUG(SSSDBG_OP_FAILURE, ("Failed to get KDC time offset: %s\n",
-@@ -356,10 +356,6 @@ static krb5_error_code ldap_child_get_tgt_sync(TALLOC_CTX *memctx,
+         DEBUG(SSSDBG_OP_FAILURE, "Failed to get KDC time offset: %s\n",
+@@ -356,10 +356,6 @@ static krb5_error_code ldap_child_get_tg
          }
      }
-     DEBUG(SSSDBG_TRACE_INTERNAL, ("Got KDC time offset\n"));
+     DEBUG(SSSDBG_TRACE_INTERNAL, "Got KDC time offset\n");
 -#else
 -    /* If we don't have this function, just assume no offset */
 -    kdc_time_offset = 0;
@@ -632,11 +633,9 @@ index 19c838d..16f724b 100644
  
      krberr = 0;
      *ccname_out = ccname;
-diff --git a/src/providers/ldap/ldap_common.c b/src/providers/ldap/ldap_common.c
-index b3a048c..a50a072 100644
---- a/src/providers/ldap/ldap_common.c
-+++ b/src/providers/ldap/ldap_common.c
-@@ -1261,7 +1261,7 @@ done:
+--- sssd-1.11.6/src/providers/ldap/ldap_common.c.orig	2014-06-03 16:31:33.000000000 +0200
++++ sssd-1.11.6/src/providers/ldap/ldap_common.c	2014-06-19 07:33:38.193317867 +0200
+@@ -1303,7 +1303,7 @@ done:
  static const char *
  sdap_gssapi_get_default_realm(TALLOC_CTX *mem_ctx)
  {
@@ -645,15 +644,15 @@ index b3a048c..a50a072 100644
      const char *realm = NULL;
      krb5_error_code krberr;
      krb5_context context = NULL;
-@@ -1272,15 +1272,15 @@ sdap_gssapi_get_default_realm(TALLOC_CTX *mem_ctx)
+@@ -1314,15 +1314,15 @@ sdap_gssapi_get_default_realm(TALLOC_CTX
          goto done;
      }
  
 -    krberr = krb5_get_default_realm(context, &krb5_realm);
 +    krberr = krb5_get_default_realm(context, &krb5_realm_str);
      if (krberr) {
-         DEBUG(2, ("Failed to get default realm name: %s\n",
-                   sss_krb5_get_error_message(context, krberr)));
+         DEBUG(SSSDBG_OP_FAILURE, "Failed to get default realm name: %s\n",
+                   sss_krb5_get_error_message(context, krberr));
          goto done;
      }
  
@@ -662,9 +661,9 @@ index b3a048c..a50a072 100644
 +    realm = talloc_strdup(mem_ctx, krb5_realm_str);
 +    krb5_free_default_realm(context, krb5_realm_str);
      if (!realm) {
-         DEBUG(0, ("Out of memory\n"));
+         DEBUG(SSSDBG_FATAL_FAILURE, "Out of memory\n");
          goto done;
-@@ -1301,7 +1301,7 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
+@@ -1343,7 +1343,7 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx
      int ret;
      const char *krb5_servers;
      const char *krb5_backup_servers;
@@ -673,15 +672,16 @@ index b3a048c..a50a072 100644
      const char *krb5_opt_realm;
      struct krb5_service *service = NULL;
      TALLOC_CTX *tmp_ctx;
-@@ -1315,15 +1315,15 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
-     krb5_opt_realm = dp_opt_get_string(opts, SDAP_KRB5_REALM);
+@@ -1358,16 +1358,16 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx
      if (krb5_opt_realm == NULL) {
-         DEBUG(2, ("Missing krb5_realm option, will use libkrb default\n"));
+         DEBUG(SSSDBG_OP_FAILURE,
+               "Missing krb5_realm option, will use libkrb default\n");
 -        krb5_realm = sdap_gssapi_get_default_realm(tmp_ctx);
 -        if (krb5_realm == NULL) {
 +        krb5_realm_str = sdap_gssapi_get_default_realm(tmp_ctx);
 +        if (krb5_realm_str == NULL) {
-             DEBUG(0, ("Cannot determine the Kerberos realm, aborting\n"));
+             DEBUG(SSSDBG_FATAL_FAILURE,
+                   "Cannot determine the Kerberos realm, aborting\n");
              ret = EIO;
              goto done;
          }
@@ -693,7 +693,7 @@ index b3a048c..a50a072 100644
              ret = ENOMEM;
              goto done;
          }
-@@ -1331,7 +1331,7 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
+@@ -1375,7 +1375,7 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx
  
      ret = krb5_service_init(mem_ctx, bectx,
                              SSS_KRB5KDC_FO_SRV, krb5_servers,
@@ -702,14 +702,14 @@ index b3a048c..a50a072 100644
                              dp_opt_get_bool(opts,
                                              SDAP_KRB5_USE_KDCINFO),
                              &service);
-@@ -1340,14 +1340,14 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx,
+@@ -1384,14 +1384,14 @@ int sdap_gssapi_init(TALLOC_CTX *mem_ctx
          goto done;
      }
  
 -    ret = sdap_install_sigterm_handler(mem_ctx, bectx->ev, krb5_realm);
 +    ret = sdap_install_sigterm_handler(mem_ctx, bectx->ev, krb5_realm_str);
      if (ret != EOK) {
-         DEBUG(0, ("Failed to install sigterm handler\n"));
+         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to install sigterm handler\n");
          goto done;
      }
  
@@ -717,7 +717,7 @@ index b3a048c..a50a072 100644
 -                                        krb5_realm, SSS_KRB5KDC_FO_SRV);
 +                                        krb5_realm_str, SSS_KRB5KDC_FO_SRV);
      if (ret != EOK) {
-         DEBUG(0, ("Failed to install sigterm handler\n"));
+         DEBUG(SSSDBG_FATAL_FAILURE, "Failed to install sigterm handler\n");
          goto done;
 diff --git a/src/tests/dlopen-tests.c b/src/tests/dlopen-tests.c
 index dd4cc75..9c09e33 100644

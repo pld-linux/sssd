@@ -6,15 +6,16 @@
 Summary:	System Security Services Daemon
 Summary(pl.UTF-8):	System Security Services Daemon - demon usług bezpieczeństwa systemu
 Name:		sssd
-Version:	1.11.4
+Version:	1.11.6
 Release:	0.1
 License:	GPL v3+
 Group:		Applications/System
 Source0:	https://fedorahosted.org/released/sssd/%{name}-%{version}.tar.gz
-# Source0-md5:	6b52a62fd6f6b170553d032deb7b0bc8
+# Source0-md5:	e4684e81171a8799fe4839b697c7e740
 Source1:	%{name}.init
 Patch0:		%{name}-python-config.patch
 Patch1:		%{name}-heimdal.patch
+Patch2:		%{name}-systemd.patch
 URL:		https://fedorahosted.org/sssd/
 BuildRequires:	autoconf >= 2.59
 BuildRequires:	automake
@@ -52,6 +53,7 @@ BuildRequires:	po4a
 BuildRequires:	popt-devel
 BuildRequires:	python-devel >= 2.4
 BuildRequires:	rpmbuild(macros) >= 1.228
+# pkgconfig(ndr_nbt)
 BuildRequires:	samba-devel >= 4
 BuildRequires:	systemd-units
 BuildRequires:	talloc-devel
@@ -241,6 +243,7 @@ libsss_nss_idmap w aplikacjach Pythona.
 %setup -q
 %patch0 -p1
 %patch1 -p1
+%patch2 -p1
 
 %build
 %{__libtoolize}
@@ -252,12 +255,14 @@ libsss_nss_idmap w aplikacjach Pythona.
 %configure \
 	NSCD=/usr/sbin/nscd \
 	--with-db-path=%{dbpath} \
+	--with-initscript=sysv,systemd \
 	--with-pipe-path=%{pipepath} \
 	--with-pubconf-path=%{pubconfpath} \
-	--with-init-dir=%{_initrddir} \
+	--with-init-dir=/etc/rc.d/init.d \
 	--enable-nsslibdir=/%{_lib} \
 	--enable-pammoddir=/%{_lib}/security \
 	--disable-rpath \
+	--with-systemdunitdir=%{systemdunitdir} \
 	--with-test-dir=/dev/shm
 
 %{__make}
@@ -354,7 +359,6 @@ fi
 
 %files -f sssd.lang
 %defattr(644,root,root,755)
-%attr(754,root,root) /etc/rc.d/init.d/sssd
 %attr(755,root,root) %{_bindir}/sss_ssh_authorizedkeys
 %attr(755,root,root) %{_bindir}/sss_ssh_knownhostsproxy
 %attr(755,root,root) %{_sbindir}/sss_cache
@@ -385,6 +389,7 @@ fi
 %attr(755,root,root) %{_libexecdir}/sssd/proxy_child
 %attr(755,root,root) %{_libexecdir}/sssd/sssd_autofs
 %attr(755,root,root) %{_libexecdir}/sssd/sssd_be
+%attr(755,root,root) %{_libexecdir}/sssd/sssd_ifp
 %attr(755,root,root) %{_libexecdir}/sssd/sssd_nss
 %attr(755,root,root) %{_libexecdir}/sssd/sssd_pam
 %attr(755,root,root) %{_libexecdir}/sssd/sssd_ssh
@@ -410,10 +415,14 @@ fi
 %attr(600,root,root) %config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/sssd/sssd.conf
 %config(noreplace) %verify(not md5 mtime size) /etc/logrotate.d/sssd
 %config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/rwtab.d/sssd
+%attr(754,root,root) /etc/rc.d/init.d/sssd
+%{systemdunitdir}/sssd.service
+/etc/dbus-1/system.d/org.freedesktop.sssd.infopipe.conf
 %{_mandir}/man1/sss_ssh_authorizedkeys.1*
 %{_mandir}/man1/sss_ssh_knownhostsproxy.1*
 %{_mandir}/man5/sssd.conf.5*
 %{_mandir}/man5/sssd-ad.5*
+%{_mandir}/man5/sssd-ifp.5*
 %{_mandir}/man5/sssd-ipa.5*
 %{_mandir}/man5/sssd-krb5.5*
 %{_mandir}/man5/sssd-ldap.5*
@@ -498,4 +507,4 @@ fi
 
 %files -n python-libsss_nss_idmap
 %defattr(644,root,root,755)
-%attr(755,root,root) %{py_sitedir}/pysss_nsss_idmap.so
+%attr(755,root,root) %{py_sitedir}/pysss_nss_idmap.so
