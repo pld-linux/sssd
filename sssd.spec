@@ -6,23 +6,25 @@
 Summary:	System Security Services Daemon
 Summary(pl.UTF-8):	System Security Services Daemon - demon usług bezpieczeństwa systemu
 Name:		sssd
-Version:	1.11.6
+Version:	1.12.0
 Release:	0.1
 License:	GPL v3+
 Group:		Applications/System
 Source0:	https://fedorahosted.org/released/sssd/%{name}-%{version}.tar.gz
-# Source0-md5:	e4684e81171a8799fe4839b697c7e740
+# Source0-md5:	f313613db186d478e9b40e10506c8838
 Source1:	%{name}.init
 Patch0:		%{name}-python-config.patch
 Patch1:		%{name}-heimdal.patch
 Patch2:		%{name}-systemd.patch
 URL:		https://fedorahosted.org/sssd/
+BuildRequires:	augeas-devel >= 1.0.0
 BuildRequires:	autoconf >= 2.59
 BuildRequires:	automake
 # nsupdate utility
 BuildRequires:	bind-utils
 BuildRequires:	c-ares-devel
 BuildRequires:	check-devel >= 0.9.5
+BuildRequires:	cifs-utils-devel
 BuildRequires:	cmocka-devel
 BuildRequires:	cyrus-sasl-devel >= 2
 BuildRequires:	dbus-devel >= 1.0.0
@@ -51,7 +53,7 @@ BuildRequires:	pam-devel
 BuildRequires:	pcre-devel >= 7
 BuildRequires:	po4a
 BuildRequires:	popt-devel
-BuildRequires:	python-devel >= 2.4
+BuildRequires:	python-devel >= 1:2.4
 BuildRequires:	rpmbuild(macros) >= 1.228
 # pkgconfig(ndr_nbt)
 BuildRequires:	samba-devel >= 4
@@ -239,10 +241,37 @@ used by Python applications.
 Ten pakiet zawiera wiązania umożliwiające korzystanie z biblioteki
 libsss_nss_idmap w aplikacjach Pythona.
 
+%package -n libsss_simpleifp
+Summary:	A library that simplifies work with the InfoPipe responder
+Summary(pl.UTF-8):	Biblioteka upraszczająca pracę z responderem InfoPipe
+Group:		Libraries
+Requires:	dbus-libs >= 1.0.0
+Requires:	libdhash >= 0.4.2
+
+%description -n libsss_simpleifp
+A library that simplifies work with the InfoPipe responder.
+
+%description -n libsss_simpleifp -l pl.UTF-8
+Biblioteka upraszczająca pracę z responderem InfoPipe.
+
+%package -n libsss_simpleifp-devel
+Summary:	Header files for libsss_simpleifp library
+Summary(pl.UTF-8):	Pliki nagłówkowe biblioteki libsss_simpleifp
+Group:		Development/Libraries
+Requires:	dbus-devel >= 1.0.0
+Requires:	libdhash-devel >= 0.4.2
+Requires:	libsss_simpleifp = %{version}-%{release}
+
+%description -n libsss_simpleifp-devel
+Header files for libsss_simpleifp library.
+
+%description -n libsss_simpleifp-devel -l pl.UTF-8
+Pliki nagłówkowe biblioteki libsss_simpleifp.
+
 %prep
 %setup -q
 %patch0 -p1
-%patch1 -p1
+%patch1 -p1 -b .orig
 %patch2 -p1
 
 %build
@@ -304,6 +333,7 @@ cp -p src/examples/rwtab $RPM_BUILD_ROOT%{_sysconfdir}/rwtab.d/sssd
 	$RPM_BUILD_ROOT/%{_lib}/libnss_sss.la \
 	$RPM_BUILD_ROOT/%{_lib}/security/pam_sss.la \
 	$RPM_BUILD_ROOT%{ldb_modulesdir}/memberof.la \
+	$RPM_BUILD_ROOT%{_libdir}/cifs-utils/*.la \
 	$RPM_BUILD_ROOT%{_libdir}/krb5/plugins/libkrb5/sss*.la \
 	$RPM_BUILD_ROOT%{_libdir}/sssd/libsss_*.la \
 	$RPM_BUILD_ROOT%{_libdir}/sssd/modules/libsss_*.la \
@@ -357,6 +387,9 @@ fi
 %post	-n libsss_nss_idmap -p /sbin/ldconfig
 %postun	-n libsss_nss_idmap -p /sbin/ldconfig
 
+%post	-n libsss_simpleifp -p /sbin/ldconfig
+%postun	-n libsss_simpleifp -p /sbin/ldconfig
+
 %files -f sssd.lang
 %defattr(644,root,root,755)
 %attr(755,root,root) %{_bindir}/sss_ssh_authorizedkeys
@@ -366,7 +399,9 @@ fi
 %attr(755,root,root) %{_libdir}/libsss_sudo.so
 %dir %{_libdir}/sssd
 # internal shared libraries
+%attr(755,root,root) %{_libdir}/sssd/libsss_ad_common.so
 %attr(755,root,root) %{_libdir}/sssd/libsss_child.so
+%attr(755,root,root) %{_libdir}/sssd/libsss_config.so
 %attr(755,root,root) %{_libdir}/sssd/libsss_crypt.so
 %attr(755,root,root) %{_libdir}/sssd/libsss_debug.so
 %attr(755,root,root) %{_libdir}/sssd/libsss_ldap_common.so
@@ -384,9 +419,11 @@ fi
 %if "%{_libdir}" != "%{_libexecdir}"
 %dir %{_libexecdir}/sssd
 %endif
+%attr(755,root,root) %{_libexecdir}/sssd/gpo_child
 %attr(755,root,root) %{_libexecdir}/sssd/krb5_child
 %attr(755,root,root) %{_libexecdir}/sssd/ldap_child
 %attr(755,root,root) %{_libexecdir}/sssd/proxy_child
+%attr(755,root,root) %{_libexecdir}/sssd/sss_signal
 %attr(755,root,root) %{_libexecdir}/sssd/sssd_autofs
 %attr(755,root,root) %{_libexecdir}/sssd/sssd_be
 %attr(755,root,root) %{_libexecdir}/sssd/sssd_ifp
@@ -418,6 +455,7 @@ fi
 %attr(754,root,root) /etc/rc.d/init.d/sssd
 %{systemdunitdir}/sssd.service
 /etc/dbus-1/system.d/org.freedesktop.sssd.infopipe.conf
+%{_datadir}/dbus-1/system-services/org.freedesktop.sssd.infopipe.service
 %{_mandir}/man1/sss_ssh_authorizedkeys.1*
 %{_mandir}/man1/sss_ssh_knownhostsproxy.1*
 %{_mandir}/man5/sssd.conf.5*
@@ -440,6 +478,7 @@ fi
 %defattr(644,root,root,755)
 %attr(755,root,root) /%{_lib}/libnss_sss.so.2
 %attr(755,root,root) /%{_lib}/security/pam_sss.so
+%attr(755,root,root) %{_libdir}/cifs-utils/cifs_idmap_sss.so
 # FIXME: is it proper path for heimdal? where to package parent dirs?
 #%attr(755,root,root) %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so
 %{_mandir}/man8/pam_sss.8*
@@ -508,3 +547,15 @@ fi
 %files -n python-libsss_nss_idmap
 %defattr(644,root,root,755)
 %attr(755,root,root) %{py_sitedir}/pysss_nss_idmap.so
+
+%files -n libsss_simpleifp
+%defattr(644,root,root,755)
+%attr(755,root,root) %{_libdir}/libsss_simpleifp.so.*.*.*
+%attr(755,root,root) %ghost %{_libdir}/libsss_simpleifp.so.0
+
+%files -n libsss_simpleifp-devel
+%defattr(644,root,root,755)
+%attr(755,root,root) %{_libdir}/libsss_simpleifp.so
+%{_includedir}/sss_sifp.h
+%{_includedir}/sss_sifp_dbus.h
+%{_pkgconfigdir}/sss_simpleifp.pc

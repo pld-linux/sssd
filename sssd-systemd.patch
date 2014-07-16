@@ -19,12 +19,12 @@
    AC_MSG_NOTICE([Will use init script type: $initscript])
    ])
  
---- sssd-1.11.6/Makefile.am.orig	2014-06-19 17:11:18.599262100 +0200
-+++ sssd-1.11.6/Makefile.am	2014-06-19 17:20:54.085916775 +0200
-@@ -2181,7 +2181,8 @@
- if HAVE_SYSTEMD_UNIT
-     systemdunit_DATA += \
-         src/sysv/systemd/sssd.service
+--- sssd-1.12.0/Makefile.am.orig	2014-07-15 20:47:04.758973132 +0200
++++ sssd-1.12.0/Makefile.am	2014-07-15 20:55:56.852284135 +0200
+@@ -2532,7 +2532,8 @@
+     systemdconf_DATA += \
+         src/sysv/systemd/journal.conf
+ endif
 -else
 +endif
 +if HAVE_SYSV
