@@ -31,7 +31,7 @@ BuildRequires:	dbus-devel >= 1.0.0
 BuildRequires:	docbook-dtd44-xml
 BuildRequires:	docbook-style-xsl
 BuildRequires:	doxygen
-BuildRequires:	gettext-devel >= 0.14
+BuildRequires:	gettext-tools >= 0.14
 BuildRequires:	glib2-devel >= 2.0
 BuildRequires:	heimdal-devel
 BuildRequires:	keyutils-devel
