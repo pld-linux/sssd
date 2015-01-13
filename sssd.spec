@@ -6,16 +6,17 @@
 Summary:	System Security Services Daemon
 Summary(pl.UTF-8):	System Security Services Daemon - demon usług bezpieczeństwa systemu
 Name:		sssd
-Version:	1.12.0
+Version:	1.12.3
 Release:	0.1
 License:	GPL v3+
 Group:		Applications/System
 Source0:	https://fedorahosted.org/released/sssd/%{name}-%{version}.tar.gz
-# Source0-md5:	f313613db186d478e9b40e10506c8838
+# Source0-md5:	b891c263819a1dde062d7065448a4d58
 Source1:	%{name}.init
 Patch0:		%{name}-python-config.patch
 Patch1:		%{name}-heimdal.patch
 Patch2:		%{name}-systemd.patch
+Patch3:		%{name}-link.patch
 URL:		https://fedorahosted.org/sssd/
 BuildRequires:	augeas-devel >= 1.0.0
 BuildRequires:	autoconf >= 2.59
@@ -39,10 +40,11 @@ BuildRequires:	libcollection-devel >= 0.5.1
 BuildRequires:	libdhash-devel >= 0.4.2
 BuildRequires:	libini_config-devel >= 1.0.0
 BuildRequires:	ldb-devel >= %{ldb_version}
+BuildRequires:	libnfsidmap-devel
 BuildRequires:	libnl-devel >= 3.2
 BuildRequires:	libselinux-devel
 BuildRequires:	libsemanage-devel
-BuildRequires:	libtool
+BuildRequires:	libtool >= 2:2
 BuildRequires:	libxml2-progs
 BuildRequires:	libxslt-progs
 BuildRequires:	m4
@@ -132,6 +134,34 @@ Pakiet zawiera także kilka innych narzędzi administracyjnych:
  - sss_debuglevel do zmiany poziomu diagnostyki w locie,
  - sss_seed tworzący wpis użytkownika do szybkiego rozruchu,
  - sss_obfuscate do generowania utajnionego hasła LDAP.
+
+%package libwbclient
+Summary:	The SSSD libwbclient implementation
+Summary(pl.UTF-8):	Implementacja libwbclient oparta na SSSD
+Group:		Libraries
+License:	LGPL v3+
+Requires:	libsss_nss_idmap = %{version}-%{release}
+
+%description libwbclient
+The SSSD implementation of Samba wbclient library.
+
+%description libwbclient -l pl.UTF-8
+Implementacja biblioteki Samba wbclient oparta na SSSD.
+
+%package libwbclient-devel
+Summary:	Development files of the SSSD libwbclient implementation
+Summary(pl.UTF-8):	Pliki programistyczne implementacja libwbclient oparta na SSSD
+Group:		Development/Libraries
+License:	LGPL v3+
+Requires:	%{name}-libwbclient = %{version}-%{release}
+
+%description libwbclient-devel
+Development files for the SSSD implementation of Samba wbclient
+library.
+
+%description libwbclient-devel -l pl.UTF-8
+Pliki programistyczne implementacji biblioteki Samba wbclient opartej
+na SSSD.
 
 %package -n libipa_hbac
 Summary:	FreeIPA HBAC Evaluator library
@@ -271,8 +301,9 @@ Pliki nagłówkowe biblioteki libsss_simpleifp.
 %prep
 %setup -q
 %patch0 -p1
-%patch1 -p1 -b .orig
+%patch1 -p1
 %patch2 -p1
+%patch3 -p1
 
 %build
 %{__libtoolize}
@@ -283,14 +314,15 @@ Pliki nagłówkowe biblioteki libsss_simpleifp.
 #CFLAGS="-Wno-deprecated-declarations"
 %configure \
 	NSCD=/usr/sbin/nscd \
-	--with-db-path=%{dbpath} \
-	--with-initscript=sysv,systemd \
-	--with-pipe-path=%{pipepath} \
-	--with-pubconf-path=%{pubconfpath} \
-	--with-init-dir=/etc/rc.d/init.d \
+	--enable-nfsidmaplibdir=/%{_lib}/libnfsidmap \
 	--enable-nsslibdir=/%{_lib} \
 	--enable-pammoddir=/%{_lib}/security \
 	--disable-rpath \
+	--with-db-path=%{dbpath} \
+	--with-init-dir=/etc/rc.d/init.d \
+	--with-initscript=sysv,systemd \
+	--with-pipe-path=%{pipepath} \
+	--with-pubconf-path=%{pubconfpath} \
 	--with-systemdunitdir=%{systemdunitdir} \
 	--with-test-dir=/dev/shm
 
@@ -331,12 +363,13 @@ cp -p src/examples/rwtab $RPM_BUILD_ROOT%{_sysconfdir}/rwtab.d/sssd
 # Remove .la files created by libtool
 %{__rm} \
 	$RPM_BUILD_ROOT/%{_lib}/libnss_sss.la \
+	$RPM_BUILD_ROOT/%{_lib}/libnfsidmap/sss.la \
 	$RPM_BUILD_ROOT/%{_lib}/security/pam_sss.la \
 	$RPM_BUILD_ROOT%{ldb_modulesdir}/memberof.la \
 	$RPM_BUILD_ROOT%{_libdir}/cifs-utils/*.la \
 	$RPM_BUILD_ROOT%{_libdir}/krb5/plugins/libkrb5/sss*.la \
 	$RPM_BUILD_ROOT%{_libdir}/sssd/libsss_*.la \
-	$RPM_BUILD_ROOT%{_libdir}/sssd/modules/libsss_*.la \
+	$RPM_BUILD_ROOT%{_libdir}/sssd/modules/lib*.la \
 	$RPM_BUILD_ROOT%{_libdir}/lib*.la \
 	$RPM_BUILD_ROOT%{py_sitedir}/*.la
 
@@ -405,6 +438,7 @@ fi
 %attr(755,root,root) %{_libdir}/sssd/libsss_crypt.so
 %attr(755,root,root) %{_libdir}/sssd/libsss_debug.so
 %attr(755,root,root) %{_libdir}/sssd/libsss_ldap_common.so
+%attr(755,root,root) %{_libdir}/sssd/libsss_semanage.so
 %attr(755,root,root) %{_libdir}/sssd/libsss_util.so
 # modules
 %attr(755,root,root) %{_libdir}/sssd/libsss_simple.so
@@ -423,6 +457,7 @@ fi
 %attr(755,root,root) %{_libexecdir}/sssd/krb5_child
 %attr(755,root,root) %{_libexecdir}/sssd/ldap_child
 %attr(755,root,root) %{_libexecdir}/sssd/proxy_child
+%attr(755,root,root) %{_libexecdir}/sssd/selinux_child
 %attr(755,root,root) %{_libexecdir}/sssd/sss_signal
 %attr(755,root,root) %{_libexecdir}/sssd/sssd_autofs
 %attr(755,root,root) %{_libexecdir}/sssd/sssd_be
@@ -441,6 +476,7 @@ fi
 %{_datadir}/sssd/sssd.api.d/sssd-local.conf
 %{_datadir}/sssd/sssd.api.d/sssd-proxy.conf
 %{_datadir}/sssd/sssd.api.d/sssd-simple.conf
+%attr(755,root,root) /%{_lib}/libnfsidmap/sss.so
 %attr(755,root,root) %{ldb_modulesdir}/memberof.so
 %dir %{sssdstatedir}
 %attr(700,root,root) %dir %{dbpath}
@@ -458,6 +494,7 @@ fi
 %{_datadir}/dbus-1/system-services/org.freedesktop.sssd.infopipe.service
 %{_mandir}/man1/sss_ssh_authorizedkeys.1*
 %{_mandir}/man1/sss_ssh_knownhostsproxy.1*
+%{_mandir}/man5/sss_rpcidmapd.5*
 %{_mandir}/man5/sssd.conf.5*
 %{_mandir}/man5/sssd-ad.5*
 %{_mandir}/man5/sssd-ifp.5*
@@ -559,3 +596,13 @@ fi
 %{_includedir}/sss_sifp.h
 %{_includedir}/sss_sifp_dbus.h
 %{_pkgconfigdir}/sss_simpleifp.pc
+
+%files libwbclient
+%defattr(644,root,root,755)
+%attr(755,root,root) %{_libdir}/sssd/modules/libwbclient.so.*
+
+%files libwbclient-devel
+%defattr(644,root,root,755)
+%attr(755,root,root) %{_libdir}/sssd/modules/libwbclient.so
+%{_includedir}/wbclient_sssd.h
+%{_pkgconfigdir}/wbclient_sssd.pc
