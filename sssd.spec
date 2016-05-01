@@ -40,6 +40,7 @@ BuildRequires:	libcollection-devel >= 0.5.1
 BuildRequires:	libdhash-devel >= 0.4.2
 BuildRequires:	libini_config-devel >= 1.0.0
 BuildRequires:	ldb-devel >= %{ldb_version}
+BuildRequires:	libltdl-devel
 BuildRequires:	libnfsidmap-devel
 BuildRequires:	libnl-devel >= 3.2
 BuildRequires:	libselinux-devel
@@ -53,9 +54,11 @@ BuildRequires:	nss-devel
 BuildRequires:	openldap-devel
 BuildRequires:	pam-devel
 BuildRequires:	pcre-devel >= 7
+BuildRequires:	pkgconfig
 BuildRequires:	po4a
 BuildRequires:	popt-devel
 BuildRequires:	python-devel >= 1:2.4
+BuildRequires:	rpm-pythonprov
 BuildRequires:	rpmbuild(macros) >= 1.228
 # pkgconfig(ndr_nbt)
 BuildRequires:	samba-devel >= 4
