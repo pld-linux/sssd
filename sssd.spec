@@ -5,8 +5,10 @@
 #   *** WARNING: no sources found for /usr/lib64/libipa_hbac.so.0.0.0 (stripped without sourcefile information?)
 #
 # Conditional build:
+%bcond_with	tests		# build with tests
 %bcond_without	python2 # CPython 2.x module
 %bcond_with	python3 # CPython 3.x module
+%bcond_without	krb5 # Build without krb5 support
 
 %define		ldb_version 1.1.0
 Summary:	System Security Services Daemon
@@ -333,6 +335,9 @@ Pliki nagłówkowe biblioteki libsss_simpleifp.
 	--with%{!?with_python2:out}-python2-bindings \
 	--with%{!?with_python3:out}-python3-bindings \
 	--with-systemdunitdir=%{systemdunitdir} \
+%if %{without krb5}
+	--disable-krb5-locator-plugin \
+%endif
 	--with-test-dir=/dev/shm
 
 %{__make}
