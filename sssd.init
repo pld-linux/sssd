@@ -10,7 +10,6 @@
 # config:	/etc/sssd/sssd.conf
 # pidfile:	/var/lib/sssd/sssd.pid
 #
-# $Id$
 
 # Source function library
 . /etc/rc.d/init.d/functions

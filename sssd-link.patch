@@ -1,11 +1,11 @@
---- sssd-1.12.3/Makefile.am.orig	2015-01-12 18:49:06.135356150 +0100
-+++ sssd-1.12.3/Makefile.am	2015-01-12 19:16:19.545287606 +0100
-@@ -870,7 +870,7 @@
-     src/sss_client/libwbclient/wbc_util_sssd.c
+--- sssd-1.13.4/Makefile.am~	2016-05-01 12:25:42.000000000 +0300
++++ sssd-1.13.4/Makefile.am	2016-05-01 12:26:04.028031558 +0300
+@@ -1010,7 +1010,7 @@
+     $(NULL)
  libwbclient_la_LIBADD = \
      libsss_nss_idmap.la \
--    $(CLIENT_LIBS)
-+    $(CLIENT_LIBS) -ldl
+-    $(CLIENT_LIBS) \
++    $(CLIENT_LIBS) -ldl \
+     $(NULL)
+ 
  libwbclient_la_LDFLAGS = \
-     -Wl,--version-script,$(srcdir)/src/sss_client/libwbclient/wbclient.exports \
-     -version-info 11:0:11

@@ -1,19 +1,24 @@
 # TODO
+# - python3 packages
 # - pac-responder (currently relies on MIT krb5 >= 1.9)
 # - fix stripping before rpm:
 #   *** WARNING: no sources found for /usr/lib64/libipa_hbac.so.0.0.0 (stripped without sourcefile information?)
+#
+# Conditional build:
+%bcond_without	python2 # CPython 2.x module
+%bcond_with	python3 # CPython 3.x module
+
 %define		ldb_version 1.1.0
 Summary:	System Security Services Daemon
 Summary(pl.UTF-8):	System Security Services Daemon - demon usług bezpieczeństwa systemu
 Name:		sssd
-Version:	1.12.3
+Version:	1.13.4
 Release:	0.1
 License:	GPL v3+
 Group:		Applications/System
 Source0:	https://fedorahosted.org/released/sssd/%{name}-%{version}.tar.gz
-# Source0-md5:	b891c263819a1dde062d7065448a4d58
+# Source0-md5:	d147e0a4f4719d993693c6a99370b350
 Source1:	%{name}.init
-Patch0:		%{name}-python-config.patch
 Patch1:		%{name}-heimdal.patch
 Patch2:		%{name}-systemd.patch
 Patch3:		%{name}-link.patch
@@ -32,7 +37,7 @@ BuildRequires:	dbus-devel >= 1.0.0
 BuildRequires:	docbook-dtd44-xml
 BuildRequires:	docbook-style-xsl
 BuildRequires:	doxygen
-BuildRequires:	gettext-tools >= 0.14
+BuildRequires:	gettext-tools >= 0.14.4
 BuildRequires:	glib2-devel >= 2.0
 BuildRequires:	heimdal-devel
 BuildRequires:	keyutils-devel
@@ -303,7 +308,6 @@ Pliki nagłówkowe biblioteki libsss_simpleifp.
 
 %prep
 %setup -q
-%patch0 -p1
 %patch1 -p1
 %patch2 -p1
 %patch3 -p1
@@ -326,6 +330,8 @@ Pliki nagłówkowe biblioteki libsss_simpleifp.
 	--with-initscript=sysv,systemd \
 	--with-pipe-path=%{pipepath} \
 	--with-pubconf-path=%{pubconfpath} \
+	--with%{!?with_python2:out}-python2-bindings \
+	--with%{!?with_python3:out}-python3-bindings \
 	--with-systemdunitdir=%{systemdunitdir} \
 	--with-test-dir=/dev/shm
 
