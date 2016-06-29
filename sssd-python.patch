@@ -1,0 +1,30 @@
+--- sssd-1.13.4/Makefile.am.orig	2016-06-28 17:57:00.181321734 +0200
++++ sssd-1.13.4/Makefile.am	2016-06-28 18:18:06.907792621 +0200
+@@ -3598,11 +3598,13 @@
+ 		cd $(builddir)/src/config; \
+ 		$(PYTHON2) setup.py build --build-base $(abs_builddir)/src/config \
+ 			install $(DISTSETUPOPTS) --prefix=$(PYTHON2_PREFIX) \
++			--install-purelib=$(python2dir) --optimize=2 \
+ 			--record=$(abs_builddir)/src/config/.files2; \
+ 	else \
+ 		cd $(builddir)/src/config; \
+ 		$(PYTHON2) setup.py build --build-base $(abs_builddir)/src/config \
+ 			install $(DISTSETUPOPTS) --prefix=$(PYTHON2_PREFIX) \
++			--install-purelib=$(python2dir) --optimize=2 \
+ 			--record=$(abs_builddir)/src/config/.files2 --root=$(DESTDIR); \
+ 	fi
+ 	cd $(DESTDIR)$(py2execdir) && \
+@@ -3616,11 +3618,13 @@
+ 		cd $(builddir)/src/config; \
+ 		$(PYTHON3) setup.py build --build-base $(abs_builddir)/src/config \
+ 			install $(DISTSETUPOPTS) --prefix=$(PYTHON3_PREFIX) \
++			--install-purelib=$(python3dir) --optimize=2 \
+ 			--record=$(abs_builddir)/src/config/.files3; \
+ 	else \
+ 		cd $(builddir)/src/config; \
+ 		$(PYTHON3) setup.py build --build-base $(abs_builddir)/src/config \
+ 			install $(DISTSETUPOPTS) --prefix=$(PYTHON3_PREFIX) \
++			--install-purelib=$(python3dir) --optimize=2 \
+ 			--record=$(abs_builddir)/src/config/.files3 --root=$(DESTDIR); \
+ 	fi
+ 	cd $(DESTDIR)$(py3execdir) && \

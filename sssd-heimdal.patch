@@ -680,11 +680,19 @@ index 0c6b68b..102827e 100644
      krb5_free_principal(kcontext, princ);
      krb5_free_context(kcontext);
      return ret;
-diff --git a/src/util/sss_krb5.c b/src/util/sss_krb5.c
-index f8a7e6f..a954d10 100644
---- a/src/util/sss_krb5.c
-+++ b/src/util/sss_krb5.c
-@@ -484,7 +484,9 @@ void KRB5_CALLCONV sss_krb5_get_init_cre
+--- sssd-1.13.4/src/util/sss_krb5.c.orig	2016-04-13 16:48:41.000000000 +0200
++++ sssd-1.13.4/src/util/sss_krb5.c	2016-06-28 16:50:29.169609569 +0200
+@@ -20,7 +20,9 @@
+ #include <stdio.h>
+ #include <errno.h>
+ #include <talloc.h>
++#ifdef HAVE_PROFILE_H
+ #include <profile.h>
++#endif
+ 
+ #include "config.h"
+ 
+@@ -485,7 +487,9 @@
  
  void KRB5_CALLCONV sss_krb5_free_unparsed_name(krb5_context context, char *name)
  {
@@ -695,7 +703,7 @@ index f8a7e6f..a954d10 100644
      krb5_free_unparsed_name(context, name);
  #else
      if (name != NULL) {
-@@ -494,6 +496,15 @@ void KRB5_CALLCONV sss_krb5_free_unparse
+@@ -495,6 +499,15 @@
  #endif
  }
  
@@ -711,7 +719,7 @@ index f8a7e6f..a954d10 100644
  
  krb5_error_code KRB5_CALLCONV sss_krb5_get_init_creds_opt_set_expire_callback(
                                                     krb5_context context,
-@@ -752,15 +763,16 @@ cleanup:
+@@ -753,15 +766,16 @@
  #endif /* HAVE_KRB5_UNPARSE_NAME_FLAGS */
  }
  
@@ -734,7 +742,7 @@ index f8a7e6f..a954d10 100644
  #else
      DEBUG(SSSDBG_OP_FAILURE, "Kerberos principal canonicalization is not available!\n");
  #endif
-@@ -1022,7 +1034,7 @@ done:
+@@ -1023,7 +1037,7 @@
              KRB5_DEBUG(SSSDBG_MINOR_FAILURE, ctx, kerr);
          }
      }
@@ -743,10 +751,22 @@ index f8a7e6f..a954d10 100644
  
      return ret_ccname;
  #else
-@@ -1069,3 +1081,44 @@ krb5_error_code sss_krb5_kt_have_content
-     return 0;
- #endif
- }
+@@ -1076,6 +1090,7 @@
+ 
+ bool sss_krb5_realm_has_proxy(const char *realm)
+ {
++#ifdef HAVE_PROFILE_H
+     krb5_context context = NULL;
+     krb5_error_code kerr;
+     struct _profile_t *profile = NULL;
+@@ -1128,4 +1143,48 @@
+     krb5_free_context(context);
+ 
+     return res;
++#else
++    return false;
++#endif
++}
 +
 +krb5_error_code KRB5_CALLCONV
 +sss_krb5_unparse_name_ext(krb5_context ctx,
@@ -787,7 +807,7 @@ index f8a7e6f..a954d10 100644
 +    *microseconds = 0;
 +    return 0;
 +#endif
-+}
+ }
 --- sssd-1.13.4/src/util/sss_krb5.h~	2016-05-01 12:23:18.000000000 +0300
 +++ sssd-1.13.4/src/util/sss_krb5.h	2016-05-01 12:24:04.615247459 +0300
 @@ -70,6 +70,8 @@ void KRB5_CALLCONV sss_krb5_get_init_cre
@@ -848,15 +868,13 @@ index f8a7e6f..a954d10 100644
  krb5_error_code copy_keytab_into_memory(TALLOC_CTX *mem_ctx, krb5_context kctx,
                                          char *inp_keytab_file,
                                          char **_mem_name,
-#--- sssd-1.11.4/src/external/pac_responder.m4.orig	2014-02-17 19:55:32.000000000 +0100
-#+++ sssd-1.11.4/src/external/pac_responder.m4	2014-03-22 17:59:50.707675270 +0100
-#@@ -21,7 +21,8 @@
+#--- sssd-1.13.4/src/external/pac_responder.m4.orig	2016-04-13 16:48:41.000000000 +0200
+#+++ sssd-1.13.4/src/external/pac_responder.m4	2016-06-28 17:56:26.774836046 +0200
+#@@ -18,6 +18,7 @@
+#     AC_MSG_CHECKING(for supported MIT krb5 version)
+#     KRB5_VERSION="`$KRB5_CONFIG --version`"
+#     case $KRB5_VERSION in
+#+        heimdal\ *) | \
 #         Kerberos\ 5\ release\ 1.9* | \
 #         Kerberos\ 5\ release\ 1.10* | \
 #         Kerberos\ 5\ release\ 1.11* | \
-#-        Kerberos\ 5\ release\ 1.12*)
-#+        Kerberos\ 5\ release\ 1.12* | \
-#+        heimdal\ *)
-#             krb5_version_ok=yes
-#             AC_MSG_RESULT([yes])
-#             ;;

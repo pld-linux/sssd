@@ -1,14 +1,12 @@
 # TODO
-# - python3 packages
-# - pac-responder (currently relies on MIT krb5 >= 1.9)
 # - fix stripping before rpm:
 #   *** WARNING: no sources found for /usr/lib64/libipa_hbac.so.0.0.0 (stripped without sourcefile information?)
 #
 # Conditional build:
-%bcond_with	tests		# build with tests
+%bcond_with	tests	# check target
 %bcond_without	python2 # CPython 2.x module
-%bcond_with	python3 # CPython 3.x module
-%bcond_without	krb5 # Build without krb5 support
+%bcond_without	python3 # CPython 3.x module
+%bcond_with	krb5	# MIT Kerberos V instead of Heimdal (enables locator plugin, profile support and pac-responder)
 
 %define		ldb_version 1.1.0
 Summary:	System Security Services Daemon
@@ -21,6 +19,7 @@ Group:		Applications/System
 Source0:	https://fedorahosted.org/released/sssd/%{name}-%{version}.tar.gz
 # Source0-md5:	d147e0a4f4719d993693c6a99370b350
 Source1:	%{name}.init
+Patch0:		%{name}-python.patch
 Patch1:		%{name}-heimdal.patch
 Patch2:		%{name}-systemd.patch
 Patch3:		%{name}-link.patch
@@ -33,52 +32,64 @@ BuildRequires:	bind-utils
 BuildRequires:	c-ares-devel
 BuildRequires:	check-devel >= 0.9.5
 BuildRequires:	cifs-utils-devel
-BuildRequires:	cmocka-devel
+%{?with_tests:BuildRequires:	cmocka-devel >= 1.0.0}
 BuildRequires:	cyrus-sasl-devel >= 2
 BuildRequires:	dbus-devel >= 1.0.0
 BuildRequires:	docbook-dtd44-xml
 BuildRequires:	docbook-style-xsl
 BuildRequires:	doxygen
+%{?with_tests:BuildRequires:	fakeroot}
 BuildRequires:	gettext-tools >= 0.14.4
 BuildRequires:	glib2-devel >= 2.0
-BuildRequires:	heimdal-devel
+%{!?with_krb5:BuildRequires:	heimdal-devel}
 BuildRequires:	keyutils-devel
+%{?with_krb5:BuildRequires:	krb5-devel >= 1.9}
+BuildRequires:	ldb-devel >= %{ldb_version}
 BuildRequires:	libcollection-devel >= 0.5.1
 BuildRequires:	libdhash-devel >= 0.4.2
-BuildRequires:	libini_config-devel >= 1.0.0
-BuildRequires:	ldb-devel >= %{ldb_version}
+BuildRequires:	libini_config-devel >= 1.1.0
 BuildRequires:	libltdl-devel
 BuildRequires:	libnfsidmap-devel
 BuildRequires:	libnl-devel >= 3.2
 BuildRequires:	libselinux-devel
 BuildRequires:	libsemanage-devel
+BuildRequires:	libsmbclient-devel
 BuildRequires:	libtool >= 2:2
 BuildRequires:	libxml2-progs
 BuildRequires:	libxslt-progs
 BuildRequires:	m4
 BuildRequires:	nspr-devel
 BuildRequires:	nss-devel
+%{?with_tests:BuildRequires:	nss_wrapper}
 BuildRequires:	openldap-devel
 BuildRequires:	pam-devel
 BuildRequires:	pcre-devel >= 7
 BuildRequires:	pkgconfig
 BuildRequires:	po4a
 BuildRequires:	popt-devel
-BuildRequires:	python-devel >= 1:2.4
+%{?with_python2:BuildRequires:	python-devel >= 1:2.6}
+%{?with_tests:BuildRequires:	python-pytest}
+%{?with_python3:BuildRequires:	python3-devel >= 1:3.3}
 BuildRequires:	rpm-pythonprov
-BuildRequires:	rpmbuild(macros) >= 1.228
-# pkgconfig(ndr_nbt)
+BuildRequires:	rpmbuild(macros) >= 1.612
+# pkgconfig(ndr_nbt), pkgconfig(ndr_krb5pac) if with krb5
 BuildRequires:	samba-devel >= 4
+BuildRequires:	systemd-devel >= 1:209
 BuildRequires:	systemd-units
 BuildRequires:	talloc-devel
 BuildRequires:	tdb-devel >= 1.1.3
 BuildRequires:	tevent-devel
+%{?with_tests:BuildRequires:	uid_wrapper}
 Requires(post):	/sbin/ldconfig
 Requires(post,preun):	/sbin/chkconfig
 Requires:	%{name}-client = %{version}-%{release}
 Requires:	cyrus-sasl-gssapi
 Requires:	ldb >= %{ldb_version}
+Requires:	libcollection >= 0.5.1
+Requires:	libdhash >= 0.4.2
+Requires:	libini_config >= 1.1.0
 Requires:	libsss_idmap = %{version}-%{release}
+Requires:	pcre >= 7
 Requires:	rc-scripts >= 0.4.0.10
 Requires:	tdb >= 1.1.3
 BuildRoot:	%{tmpdir}/%{name}-%{version}-root-%(id -u -n)
@@ -110,6 +121,8 @@ Summary:	SSSD Client libraries for NSS and PAM
 Summary(pl.UTF-8):	Biblioteki klienckie SSSD dla NSS i PAM
 License:	LGPL v3+
 Group:		Applications/System
+Requires:	libsss_idmap = %{version}-%{release}
+Requires:	libsss_nss_idmap = %{version}-%{release}
 
 %description client
 Provides the libraries needed by the PAM and NSS stacks to connect to
@@ -144,6 +157,108 @@ Pakiet zawiera także kilka innych narzędzi administracyjnych:
  - sss_debuglevel do zmiany poziomu diagnostyki w locie,
  - sss_seed tworzący wpis użytkownika do szybkiego rozruchu,
  - sss_obfuscate do generowania utajnionego hasła LDAP.
+
+%package -n python-sss
+Summary:	Python 2 bindings for sssd
+Summary(pl.UTF-8):	Wiązania Pythona 2 do sssd
+License:	LGPL v3+
+Group:		Libraries/Python
+Requires:	%{name} = %{version}-%{release}
+
+%description -n python-sss
+Python 2 module for manipulating users, groups, and nested groups in
+SSSD when using id_provider = local in /etc/sssd/sssd.conf.
+
+This module also provides several other useful Python 2 bindings:
+ - function for retrieving list of groups user belongs to.
+ - class for obfuscation of passwords
+
+%description -n python-sss -l pl.UTF-8
+Moduł Pythona 2 do operowania na użytkownikach, grupach i
+zagnieżdżonych grupach w SSSD w przypadku używania id_provider = local
+w /etc/sssd/sssd.conf.
+
+Ten moduł dostarcza także kilka innych przydatnych wiązań Pythona 2:
+ - funkcję do użyskiwania list grup, do których należy użytkownik,
+ - klasę do ukrywania haseł.
+
+%package -n python-sss-murmur
+Summary:	Python 2 bindings for murmur hash function
+Summary(pl.UTF-8):	Wiązania Pythona 2 do funkcji mieszającej murmur
+License:	LGPL v3+
+Group:		Libraries/Python
+
+%description -n python-sss-murmur
+Python 2 module for calculating the murmur hash version 3.
+
+%description -n python-sss-murmur -l pl.UTF-8
+Moduł Pythona 2 do obliczania skrótu murmur w wersji 3.
+
+%package -n python-sssdconfig
+Summary:	SSSD and IPA configuration file manipulation classes and functions for Python 2
+Summary(pl.UTF-8):	Klasy i funkcje Pythona 2 do operowania na plikach konfiguracyjnych SSSD oraz IPA
+License:	GPL v3+
+Group:		Libraries/Python
+BuildArch:	noarch
+
+%description -n python-sssdconfig
+SSSD and IPA configuration file manipulation classes and functions for
+Python 2.
+
+%description -n python-sssdconfig -l pl.UTF-8
+Klasy i funkcje Pythona 2 do operowania na plikach konfiguracyjnych
+SSSD oraz IPA.
+
+%package -n python3-sss
+Summary:	Python 3 bindings for sssd
+Summary(pl.UTF-8):	Wiązania Pythona 3 do sssd
+License:	LGPL v3+
+Group:		Libraries/Python
+Requires:	%{name} = %{version}-%{release}
+
+%description -n python3-sss
+Python 3 module for manipulating users, groups, and nested groups in
+SSSD when using id_provider = local in /etc/sssd/sssd.conf.
+
+This module also provides several other useful Python 3 bindings:
+ - function for retrieving list of groups user belongs to.
+ - class for obfuscation of passwords
+
+%description -n python3-sss -l pl.UTF-8
+Moduł Pythona 3 do operowania na użytkownikach, grupach i
+zagnieżdżonych grupach w SSSD w przypadku używania id_provider = local
+w /etc/sssd/sssd.conf.
+
+Ten moduł dostarcza także kilka innych przydatnych wiązań Pythona 3:
+ - funkcję do użyskiwania list grup, do których należy użytkownik,
+ - klasę do ukrywania haseł.
+
+%package -n python3-sss-murmur
+Summary:	Python 3 bindings for murmur hash function
+Summary(pl.UTF-8):	Wiązania Pythona 3 do funkcji mieszającej murmur
+License:	LGPL v3+
+Group:		Libraries/Python
+
+%description -n python3-sss-murmur
+Python 3 module for calculating the murmur hash version 3.
+
+%description -n python3-sss-murmur -l pl.UTF-8
+Moduł Pythona 3 do obliczania skrótu murmur w wersji 3.
+
+%package -n python3-sssdconfig
+Summary:	SSSD and IPA configuration file manipulation classes and functions for Python 3
+Summary(pl.UTF-8):	Klasy i funkcje Pythona 3 do operowania na plikach konfiguracyjnych SSSD oraz IPA
+License:	GPL v3+
+Group:		Libraries/Python
+BuildArch:	noarch
+
+%description -n python3-sssdconfig
+SSSD and IPA configuration file manipulation classes and functions for
+Python 3.
+
+%description -n python3-sssdconfig -l pl.UTF-8
+Klasy i funkcje Pythona 3 do operowania na plikach konfiguracyjnych
+SSSD oraz IPA.
 
 %package libwbclient
 Summary:	The SSSD libwbclient implementation
@@ -201,8 +316,8 @@ Development files for FreeIPA HBAC Evaluator library.
 Pliki programistyczne biblioteki oceniająca FreeIPA HBAC.
 
 %package -n python-libipa_hbac
-Summary:	Python bindings for the FreeIPA HBAC Evaluator library
-Summary(pl.UTF-8):	Wiązania Pythona do biblioteki oceniającej FreeIPA HBAC
+Summary:	Python 2 bindings for the FreeIPA HBAC Evaluator library
+Summary(pl.UTF-8):	Wiązania Pythona 2 do biblioteki oceniającej FreeIPA HBAC
 License:	LGPL v3+
 Group:		Libraries/Python
 Requires:	libipa_hbac = %{version}-%{release}
@@ -210,11 +325,26 @@ Obsoletes:	libipa_hbac-python
 
 %description -n python-libipa_hbac
 This package contains the bindings so that libipa_hbac can be used by
-Python applications.
+Python 2 applications.
 
 %description -n python-libipa_hbac -l pl.UTF-8
 Ten pakiet zawiera wiązania pozwalające na używanie libipa_hbac w
-aplikacjach Pythona.
+aplikacjach Pythona 2.
+
+%package -n python3-libipa_hbac
+Summary:	Python 3 bindings for the FreeIPA HBAC Evaluator library
+Summary(pl.UTF-8):	Wiązania Pythona 3 do biblioteki oceniającej FreeIPA HBAC
+License:	LGPL v3+
+Group:		Libraries/Python
+Requires:	libipa_hbac = %{version}-%{release}
+
+%description -n python3-libipa_hbac
+This package contains the bindings so that libipa_hbac can be used by
+Python 3 applications.
+
+%description -n python3-libipa_hbac -l pl.UTF-8
+Ten pakiet zawiera wiązania pozwalające na używanie libipa_hbac w
+aplikacjach Pythona 3.
 
 %package -n libsss_idmap
 Summary:	FreeIPA Idmap library
@@ -267,19 +397,34 @@ Development files for sss_nss_idmap library.
 Pliki programistyczne biblioteki sss_nss_idmap.
 
 %package -n python-libsss_nss_idmap
-Summary:	Python bindings for libsss_nss_idmap
-Summary(pl.UTF-8):	Wiązania Pythona do biblioteki libsss_nss_idmap
+Summary:	Python 2 bindings for libsss_nss_idmap
+Summary(pl.UTF-8):	Wiązania Pythona 2 do biblioteki libsss_nss_idmap
 Group:		Libraries/Python
 License:	LGPL v3+
 Requires:	libsss_nss_idmap = %{version}-%{release}
 
 %description -n python-libsss_nss_idmap
 This package contains the bindings so that libsss_nss_idmap can be
-used by Python applications.
+used by Python 2 applications.
 
 %description -n python-libsss_nss_idmap -l pl.UTF-8
 Ten pakiet zawiera wiązania umożliwiające korzystanie z biblioteki
-libsss_nss_idmap w aplikacjach Pythona.
+libsss_nss_idmap w aplikacjach Pythona 2.
+
+%package -n python3-libsss_nss_idmap
+Summary:	Python 3 bindings for libsss_nss_idmap
+Summary(pl.UTF-8):	Wiązania Pythona 3 do biblioteki libsss_nss_idmap
+Group:		Libraries/Python
+License:	LGPL v3+
+Requires:	libsss_nss_idmap = %{version}-%{release}
+
+%description -n python3-libsss_nss_idmap
+This package contains the bindings so that libsss_nss_idmap can be
+used by Python 3 applications.
+
+%description -n python3-libsss_nss_idmap -l pl.UTF-8
+Ten pakiet zawiera wiązania umożliwiające korzystanie z biblioteki
+libsss_nss_idmap w aplikacjach Pythona 3.
 
 %package -n libsss_simpleifp
 Summary:	A library that simplifies work with the InfoPipe responder
@@ -310,6 +455,7 @@ Pliki nagłówkowe biblioteki libsss_simpleifp.
 
 %prep
 %setup -q
+%patch0 -p1
 %patch1 -p1
 %patch2 -p1
 %patch3 -p1
@@ -317,14 +463,15 @@ Pliki nagłówkowe biblioteki libsss_simpleifp.
 %build
 %{__libtoolize}
 %{__gettextize}
-%{__aclocal}
-%{__automake}
+%{__aclocal} -I m4
 %{__autoconf}
-#CFLAGS="-Wno-deprecated-declarations"
+%{__automake}
 %configure \
 	NSCD=/usr/sbin/nscd \
+	%{!?with_krb5:--disable-krb5-locator-plugin} \
 	--enable-nfsidmaplibdir=/%{_lib}/libnfsidmap \
 	--enable-nsslibdir=/%{_lib} \
+	%{!?with_krb5:--disable-pac-responder} \
 	--enable-pammoddir=/%{_lib}/security \
 	--disable-rpath \
 	--with-db-path=%{dbpath} \
@@ -332,12 +479,9 @@ Pliki nagłówkowe biblioteki libsss_simpleifp.
 	--with-initscript=sysv,systemd \
 	--with-pipe-path=%{pipepath} \
 	--with-pubconf-path=%{pubconfpath} \
-	--with%{!?with_python2:out}-python2-bindings \
-	--with%{!?with_python3:out}-python3-bindings \
+	--with-python2-bindings%{!?with_python2:=no} \
+	--with-python3-bindings%{!?with_python3:=no} \
 	--with-systemdunitdir=%{systemdunitdir} \
-%if %{without krb5}
-	--disable-krb5-locator-plugin \
-%endif
 	--with-test-dir=/dev/shm
 
 %{__make}
@@ -350,8 +494,10 @@ unset CK_TIMEOUT_MULTIPLIER
 
 %install
 rm -rf $RPM_BUILD_ROOT
-%{__make} install \
-	DESTDIR=$RPM_BUILD_ROOT
+
+%{__make} -j1 install \
+	DESTDIR=$RPM_BUILD_ROOT \
+	python3dir=%{py3_sitescriptdir}
 
 # Prepare language files
 %find_lang %{name}
@@ -368,12 +514,6 @@ cp -p src/examples/logrotate $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/sssd
 install -d $RPM_BUILD_ROOT%{_sysconfdir}/rwtab.d
 cp -p src/examples/rwtab $RPM_BUILD_ROOT%{_sysconfdir}/rwtab.d/sssd
 
-%py_ocomp $RPM_BUILD_ROOT%{py_sitedir}
-%py_comp $RPM_BUILD_ROOT%{py_sitedir}
-%py_ocomp $RPM_BUILD_ROOT%{py_sitescriptdir}
-%py_comp $RPM_BUILD_ROOT%{py_sitescriptdir}
-%py_postclean
-
 # Remove .la files created by libtool
 %{__rm} \
 	$RPM_BUILD_ROOT/%{_lib}/libnss_sss.la \
@@ -381,11 +521,17 @@ cp -p src/examples/rwtab $RPM_BUILD_ROOT%{_sysconfdir}/rwtab.d/sssd
 	$RPM_BUILD_ROOT/%{_lib}/security/pam_sss.la \
 	$RPM_BUILD_ROOT%{ldb_modulesdir}/memberof.la \
 	$RPM_BUILD_ROOT%{_libdir}/cifs-utils/*.la \
-	$RPM_BUILD_ROOT%{_libdir}/krb5/plugins/libkrb5/sss*.la \
+	%{?with_krb5:$RPM_BUILD_ROOT%{_libdir}/krb5/plugins/libkrb5/sss*.la} \
 	$RPM_BUILD_ROOT%{_libdir}/sssd/libsss_*.la \
 	$RPM_BUILD_ROOT%{_libdir}/sssd/modules/lib*.la \
-	$RPM_BUILD_ROOT%{_libdir}/lib*.la \
-	$RPM_BUILD_ROOT%{py_sitedir}/*.la
+	$RPM_BUILD_ROOT%{_libdir}/lib*.la
+%if %{with python2}
+%{__rm} $RPM_BUILD_ROOT%{py_sitedir}/*.la
+%py_postclean
+%endif
+%if %{with python3}
+%{__rm} $RPM_BUILD_ROOT%{py3_sitedir}/*.la
+%endif
 
 install -p %{SOURCE1} $RPM_BUILD_ROOT/etc/rc.d/init.d/%{name}
 
@@ -443,14 +589,16 @@ fi
 %attr(755,root,root) %{_bindir}/sss_ssh_knownhostsproxy
 %attr(755,root,root) %{_sbindir}/sss_cache
 %attr(755,root,root) %{_sbindir}/sssd
+# sudo plugin
 %attr(755,root,root) %{_libdir}/libsss_sudo.so
 %dir %{_libdir}/sssd
 # internal shared libraries
-%attr(755,root,root) %{_libdir}/sssd/libsss_ad_common.so
+%attr(755,root,root) %{_libdir}/sssd/libsss_cert.so
 %attr(755,root,root) %{_libdir}/sssd/libsss_child.so
 %attr(755,root,root) %{_libdir}/sssd/libsss_config.so
 %attr(755,root,root) %{_libdir}/sssd/libsss_crypt.so
 %attr(755,root,root) %{_libdir}/sssd/libsss_debug.so
+%attr(755,root,root) %{_libdir}/sssd/libsss_krb5_common.so
 %attr(755,root,root) %{_libdir}/sssd/libsss_ldap_common.so
 %attr(755,root,root) %{_libdir}/sssd/libsss_semanage.so
 %attr(755,root,root) %{_libdir}/sssd/libsss_util.so
@@ -459,7 +607,6 @@ fi
 %attr(755,root,root) %{_libdir}/sssd/libsss_ad.so
 %attr(755,root,root) %{_libdir}/sssd/libsss_ipa.so
 %attr(755,root,root) %{_libdir}/sssd/libsss_krb5.so
-%attr(755,root,root) %{_libdir}/sssd/libsss_krb5_common.so
 %attr(755,root,root) %{_libdir}/sssd/libsss_ldap.so
 %attr(755,root,root) %{_libdir}/sssd/libsss_proxy.so
 %dir %{_libdir}/sssd/modules
@@ -470,6 +617,7 @@ fi
 %attr(755,root,root) %{_libexecdir}/sssd/gpo_child
 %attr(755,root,root) %{_libexecdir}/sssd/krb5_child
 %attr(755,root,root) %{_libexecdir}/sssd/ldap_child
+%attr(755,root,root) %{_libexecdir}/sssd/p11_child
 %attr(755,root,root) %{_libexecdir}/sssd/proxy_child
 %attr(755,root,root) %{_libexecdir}/sssd/selinux_child
 %attr(755,root,root) %{_libexecdir}/sssd/sss_signal
@@ -477,6 +625,9 @@ fi
 %attr(755,root,root) %{_libexecdir}/sssd/sssd_be
 %attr(755,root,root) %{_libexecdir}/sssd/sssd_ifp
 %attr(755,root,root) %{_libexecdir}/sssd/sssd_nss
+%if %{with krb5}
+%attr(755,root,root) %{_libexecdir}/sssd/sssd_pac
+%endif
 %attr(755,root,root) %{_libexecdir}/sssd/sssd_pam
 %attr(755,root,root) %{_libexecdir}/sssd/sssd_ssh
 %attr(755,root,root) %{_libexecdir}/sssd/sssd_sudo
@@ -519,19 +670,18 @@ fi
 %{_mandir}/man5/sssd-sudo.5*
 %{_mandir}/man8/sss_cache.8*
 %{_mandir}/man8/sssd.8*
-%attr(755,root,root) %{py_sitedir}/pysss.so
-%attr(755,root,root) %{py_sitedir}/pysss_murmur.so
-%dir %{py_sitescriptdir}/SSSDConfig
-%{py_sitescriptdir}/SSSDConfig/*.py[co]
-%{py_sitescriptdir}/SSSDConfig-%{version}-py*.egg-info
 
 %files client -f sssd_client.lang
 %defattr(644,root,root,755)
 %attr(755,root,root) /%{_lib}/libnss_sss.so.2
 %attr(755,root,root) /%{_lib}/security/pam_sss.so
 %attr(755,root,root) %{_libdir}/cifs-utils/cifs_idmap_sss.so
-# FIXME: is it proper path for heimdal? where to package parent dirs?
-#%attr(755,root,root) %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so
+%if %{with krb5}
+# XXX: verify locations
+%attr(755,root,root) %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_localauth_plugin.so
+%attr(755,root,root) %{_libdir}/krb5/plugins/libkrb5/sssd_krb5_locator_plugin.so
+%attr(755,root,root) %{_libdir}/krb5/plugins/libkrb5/sssd_pac_plugin.so
+%endif
 %{_mandir}/man8/pam_sss.8*
 %{_mandir}/man8/sssd_krb5_locator_plugin.8*
 
@@ -543,6 +693,7 @@ fi
 %attr(755,root,root) %{_sbindir}/sss_groupmod
 %attr(755,root,root) %{_sbindir}/sss_groupshow
 %attr(755,root,root) %{_sbindir}/sss_obfuscate
+%attr(755,root,root) %{_sbindir}/sss_override
 %attr(755,root,root) %{_sbindir}/sss_seed
 %attr(755,root,root) %{_sbindir}/sss_useradd
 %attr(755,root,root) %{_sbindir}/sss_userdel
@@ -553,10 +704,54 @@ fi
 %{_mandir}/man8/sss_groupmod.8*
 %{_mandir}/man8/sss_groupshow.8*
 %{_mandir}/man8/sss_obfuscate.8*
+%{_mandir}/man8/sss_override.8*
 %{_mandir}/man8/sss_seed.8*
 %{_mandir}/man8/sss_useradd.8*
 %{_mandir}/man8/sss_userdel.8*
 %{_mandir}/man8/sss_usermod.8*
+
+%if %{with python2}
+%files -n python-sss
+%defattr(644,root,root,755)
+%attr(755,root,root) %{py_sitedir}/pysss.so
+
+%files -n python-sss-murmur
+%defattr(644,root,root,755)
+%attr(755,root,root) %{py_sitedir}/pysss_murmur.so
+
+%files -n python-sssdconfig
+%defattr(644,root,root,755)
+%dir %{py_sitescriptdir}/SSSDConfig
+%{py_sitescriptdir}/SSSDConfig/*.py[co]
+%{py_sitescriptdir}/SSSDConfig-%{version}-py*.egg-info
+%endif
+
+%if %{with python3}
+%files -n python3-sss
+%defattr(644,root,root,755)
+%attr(755,root,root) %{py3_sitedir}/pysss.so
+
+%files -n python3-sss-murmur
+%defattr(644,root,root,755)
+%attr(755,root,root) %{py3_sitedir}/pysss_murmur.so
+
+%files -n python3-sssdconfig
+%defattr(644,root,root,755)
+%dir %{py3_sitescriptdir}/SSSDConfig
+%{py3_sitescriptdir}/SSSDConfig/*.py
+%{py3_sitescriptdir}/SSSDConfig/__pycache__
+%{py3_sitescriptdir}/SSSDConfig-%{version}-py*.egg-info
+%endif
+
+%files libwbclient
+%defattr(644,root,root,755)
+%attr(755,root,root) %{_libdir}/sssd/modules/libwbclient.so.*
+
+%files libwbclient-devel
+%defattr(644,root,root,755)
+%attr(755,root,root) %{_libdir}/sssd/modules/libwbclient.so
+%{_includedir}/wbclient_sssd.h
+%{_pkgconfigdir}/wbclient_sssd.pc
 
 %files -n libipa_hbac
 %defattr(644,root,root,755)
@@ -569,9 +764,17 @@ fi
 %{_includedir}/ipa_hbac.h
 %{_pkgconfigdir}/ipa_hbac.pc
 
+%if %{with python2}
 %files -n python-libipa_hbac
 %defattr(644,root,root,755)
 %attr(755,root,root) %{py_sitedir}/pyhbac.so
+%endif
+
+%if %{with python3}
+%files -n python3-libipa_hbac
+%defattr(644,root,root,755)
+%attr(755,root,root) %{py3_sitedir}/pyhbac.so
+%endif
 
 %files -n libsss_idmap
 %defattr(644,root,root,755)
@@ -595,9 +798,17 @@ fi
 %{_includedir}/sss_nss_idmap.h
 %{_pkgconfigdir}/sss_nss_idmap.pc
 
+%if %{with python2}
 %files -n python-libsss_nss_idmap
 %defattr(644,root,root,755)
 %attr(755,root,root) %{py_sitedir}/pysss_nss_idmap.so
+%endif
+
+%if %{with python3}
+%files -n python3-libsss_nss_idmap
+%defattr(644,root,root,755)
+%attr(755,root,root) %{py3_sitedir}/pysss_nss_idmap.so
+%endif
 
 %files -n libsss_simpleifp
 %defattr(644,root,root,755)
@@ -610,13 +821,3 @@ fi
 %{_includedir}/sss_sifp.h
 %{_includedir}/sss_sifp_dbus.h
 %{_pkgconfigdir}/sss_simpleifp.pc
-
-%files libwbclient
-%defattr(644,root,root,755)
-%attr(755,root,root) %{_libdir}/sssd/modules/libwbclient.so.*
-
-%files libwbclient-devel
-%defattr(644,root,root,755)
-%attr(755,root,root) %{_libdir}/sssd/modules/libwbclient.so
-%{_includedir}/wbclient_sssd.h
-%{_pkgconfigdir}/wbclient_sssd.pc
