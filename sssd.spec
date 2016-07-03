@@ -1,6 +1,7 @@
 # TODO
 # - fix stripping before rpm:
 #   *** WARNING: no sources found for /usr/lib64/libipa_hbac.so.0.0.0 (stripped without sourcefile information?)
+# - add info how sssd-heimdal.patch is updated, where is it's origin?
 #
 # Conditional build:
 %bcond_with	tests	# check target
