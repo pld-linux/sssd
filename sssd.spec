@@ -14,7 +14,7 @@ Summary:	System Security Services Daemon
 Summary(pl.UTF-8):	System Security Services Daemon - demon usług bezpieczeństwa systemu
 Name:		sssd
 Version:	1.13.4
-Release:	1
+Release:	2
 License:	GPL v3+
 Group:		Applications/System
 Source0:	https://fedorahosted.org/released/sssd/%{name}-%{version}.tar.gz
@@ -513,7 +513,7 @@ cp -p src/examples/logrotate $RPM_BUILD_ROOT%{_sysconfdir}/logrotate.d/sssd
 
 # Make sure SSSD is able to run on read-only root
 install -d $RPM_BUILD_ROOT%{_sysconfdir}/rwtab.d
-cp -p src/examples/rwtab $RPM_BUILD_ROOT%{_sysconfdir}/rwtab.d/sssd
+#cp -p src/examples/rwtab $RPM_BUILD_ROOT%{_sysconfdir}/rwtab.d/sssd
 
 # Remove .la files created by libtool
 %{__rm} \
@@ -653,7 +653,7 @@ fi
 %attr(700,root,root) %dir %{_sysconfdir}/sssd
 %attr(600,root,root) %config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/sssd/sssd.conf
 %config(noreplace) %verify(not md5 mtime size) /etc/logrotate.d/sssd
-%config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/rwtab.d/sssd
+#%config(noreplace) %verify(not md5 mtime size) %{_sysconfdir}/rwtab.d/sssd
 %attr(754,root,root) /etc/rc.d/init.d/sssd
 %{systemdunitdir}/sssd.service
 /etc/dbus-1/system.d/org.freedesktop.sssd.infopipe.conf
