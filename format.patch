@@ -1,0 +1,33 @@
+From 038011b9121fff5ce0801e7ab3b49791079b91ac Mon Sep 17 00:00:00 2001
+From: Lukas Slebodnik <lslebodn@redhat.com>
+Date: Thu, 1 Dec 2016 13:13:21 +0100
+Subject: [PATCH] SIFP: Fix warning format-security
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+dbus-1.11.8 added attributes for format string check to
+few functions in public header files. And therefore there is a warning.
+
+src/lib/sifp/sss_sifp_utils.c: In function ‘sss_sifp_set_io_error’:
+src/lib/sifp/sss_sifp_utils.c:44:5: error: format not a string literal
+and no format arguments [-Werror=format-security]
+     dbus_set_error(ctx->io_error, error->name, error->message);
+          ^~~~~~~~~~~~~~
+---
+ src/lib/sifp/sss_sifp_utils.c | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/src/lib/sifp/sss_sifp_utils.c b/src/lib/sifp/sss_sifp_utils.c
+index ccd0518..dcac71f 100644
+--- a/src/lib/sifp/sss_sifp_utils.c
++++ b/src/lib/sifp/sss_sifp_utils.c
+@@ -41,7 +41,7 @@ void sss_sifp_set_io_error(sss_sifp_ctx *ctx, DBusError *error)
+ {
+     dbus_error_free(ctx->io_error);
+     dbus_error_init(ctx->io_error);
+-    dbus_set_error(ctx->io_error, error->name, error->message);
++    dbus_set_error(ctx->io_error, error->name, "%s", error->message);
+ }
+ 
+ char * sss_sifp_strdup(sss_sifp_ctx *ctx, const char *str)
