@@ -1,0 +1,22 @@
+--- sssd-1.13.4/src/providers/ad/ad_gpo_ndr.c~	2016-04-13 16:48:41.000000000 +0200
++++ sssd-1.13.4/src/providers/ad/ad_gpo_ndr.c	2019-11-02 23:00:49.203039214 +0100
+@@ -258,7 +258,7 @@
+         NDR_CHECK(ndr_pull_align(ndr, 4));
+         NDR_CHECK(ndr_pull_uint8(ndr, NDR_SCALARS, &r->sid_rev_num));
+         NDR_CHECK(ndr_pull_int8(ndr, NDR_SCALARS, &r->num_auths));
+-        if (r->num_auths < 0 || r->num_auths > ARRAY_SIZE(r->sub_auths)) {
++        if (r->num_auths < 0 || r->num_auths > N_ELEMENTS(r->sub_auths)) {
+             return ndr_pull_error(ndr, NDR_ERR_RANGE, "value out of range");
+         }
+         NDR_CHECK(ndr_pull_array_uint8(ndr, NDR_SCALARS, r->id_auth, 6));
+--- sssd-1.13.4/src/util/util.h~	2016-04-13 16:48:41.000000000 +0200
++++ sssd-1.13.4/src/util/util.h	2019-11-02 23:02:39.186368813 +0100
+@@ -587,4 +587,8 @@
+  */
+ int sss_unique_filename(TALLOC_CTX *owner, char *path_tmpl);
+ 
++#ifndef N_ELEMENTS
++#define N_ELEMENTS(arr) (sizeof(arr) / sizeof(arr[0]))
++#endif
++
+ #endif /* __SSSD_UTIL_H__ */
