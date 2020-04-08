@@ -14,7 +14,7 @@ Summary:	System Security Services Daemon
 Summary(pl.UTF-8):	System Security Services Daemon - demon usług bezpieczeństwa systemu
 Name:		sssd
 Version:	1.13.4
-Release:	9
+Release:	10
 License:	GPL v3+
 Group:		Applications/System
 Source0:	https://fedorahosted.org/released/sssd/%{name}-%{version}.tar.gz
@@ -26,6 +26,7 @@ Patch2:		%{name}-systemd.patch
 Patch3:		%{name}-link.patch
 Patch4:		format.patch
 Patch5:		array-size.patch
+Patch6:		samba-4.12.patch
 URL:		https://fedorahosted.org/sssd/
 BuildRequires:	augeas-devel >= 1.0.0
 BuildRequires:	autoconf >= 2.59
@@ -464,6 +465,10 @@ Pliki nagłówkowe biblioteki libsss_simpleifp.
 %patch3 -p1
 %patch4 -p1
 %patch5 -p1
+%patch6 -p1
+
+%{__sed} -E -i -e '1s,#!\s*/usr/bin/python(\s|$),#!%{__python}\1,' \
+      src/tools/sss_obfuscate
 
 %build
 %{__libtoolize}
