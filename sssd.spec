@@ -14,7 +14,7 @@ Summary:	System Security Services Daemon
 Summary(pl.UTF-8):	System Security Services Daemon - demon usług bezpieczeństwa systemu
 Name:		sssd
 Version:	1.13.4
-Release:	10
+Release:	11
 License:	GPL v3+
 Group:		Applications/System
 Source0:	https://fedorahosted.org/released/sssd/%{name}-%{version}.tar.gz
