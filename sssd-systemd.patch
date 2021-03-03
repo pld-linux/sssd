@@ -1,6 +1,32 @@
---- sssd-1.11.6/src/conf_macros.m4.orig	2014-06-03 16:31:33.000000000 +0200
-+++ sssd-1.11.6/src/conf_macros.m4	2014-06-19 08:53:15.746551619 +0200
-@@ -141,14 +141,15 @@
+diff -urNp -x '*.orig' sssd-1.13.4.org/Makefile.am sssd-1.13.4/Makefile.am
+--- sssd-1.13.4.org/Makefile.am	2021-03-03 21:59:13.565804202 +0100
++++ sssd-1.13.4/Makefile.am	2021-03-03 21:59:13.715851718 +0100
+@@ -3455,7 +3455,8 @@ if WITH_JOURNALD
+     systemdconf_DATA += \
+         src/sysv/systemd/journal.conf
+ endif
+-else
++endif
++if HAVE_SYSV
+ if HAVE_SUSE
+     init_SCRIPTS += \
+         src/sysv/SUSE/sssd
+diff -urNp -x '*.orig' sssd-1.13.4.org/configure.ac sssd-1.13.4/configure.ac
+--- sssd-1.13.4.org/configure.ac	2016-04-13 16:48:41.000000000 +0200
++++ sssd-1.13.4/configure.ac	2021-03-03 21:59:13.715851718 +0100
+@@ -207,7 +207,7 @@ if test x$HAVE_NSCD; then
+ fi
+ 
+ WITH_INITSCRIPT
+-if test x$initscript = xsystemd; then
++if test x"${initscript%systemd}" != x"${initscript}"; then
+     WITH_SYSTEMD_UNIT_DIR
+     WITH_SYSTEMD_CONF_DIR
+ fi
+diff -urNp -x '*.orig' sssd-1.13.4.org/src/conf_macros.m4 sssd-1.13.4/src/conf_macros.m4
+--- sssd-1.13.4.org/src/conf_macros.m4	2016-04-13 16:48:41.000000000 +0200
++++ sssd-1.13.4/src/conf_macros.m4	2021-03-03 21:59:13.715851718 +0100
+@@ -130,14 +130,15 @@ AC_DEFUN([WITH_INITSCRIPT],
    fi
  
    if test x"$with_initscript" = xsysv || \
@@ -18,27 +44,4 @@
 +  AM_CONDITIONAL([HAVE_SYSTEMD_UNIT], [test x"${initscript%systemd}" != x"${initscript}"])
    AC_MSG_NOTICE([Will use init script type: $initscript])
    ])
- 
---- sssd-1.12.0/Makefile.am.orig	2014-07-15 20:47:04.758973132 +0200
-+++ sssd-1.12.0/Makefile.am	2014-07-15 20:55:56.852284135 +0200
-@@ -2532,7 +2532,8 @@
-     systemdconf_DATA += \
-         src/sysv/systemd/journal.conf
- endif
--else
-+endif
-+if HAVE_SYSV
- if HAVE_SUSE
-     init_SCRIPTS += \
-         src/sysv/SUSE/sssd
---- sssd-1.11.6/configure.ac.orig	2014-06-19 17:11:23.749261993 +0200
-+++ sssd-1.11.6/configure.ac	2014-06-19 17:33:50.355900593 +0200
-@@ -172,7 +172,7 @@
- fi
- 
- WITH_INITSCRIPT
--if test x$initscript = xsystemd; then
-+if test x"${initscript%systemd}" != x"${initscript}"; then
-     WITH_SYSTEMD_UNIT_DIR
- fi
  

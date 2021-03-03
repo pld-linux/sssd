@@ -1,6 +1,7 @@
---- sssd-1.13.4/Makefile.am.orig	2016-06-28 17:57:00.181321734 +0200
-+++ sssd-1.13.4/Makefile.am	2016-06-28 18:18:06.907792621 +0200
-@@ -3598,11 +3598,13 @@
+diff -urNp -x '*.orig' sssd-1.13.4.org/Makefile.am sssd-1.13.4/Makefile.am
+--- sssd-1.13.4.org/Makefile.am	2016-04-13 16:48:41.000000000 +0200
++++ sssd-1.13.4/Makefile.am	2021-03-03 21:59:12.948942197 +0100
+@@ -3597,11 +3597,13 @@ if BUILD_PYTHON2_BINDINGS
  		cd $(builddir)/src/config; \
  		$(PYTHON2) setup.py build --build-base $(abs_builddir)/src/config \
  			install $(DISTSETUPOPTS) --prefix=$(PYTHON2_PREFIX) \
@@ -14,7 +15,7 @@
  			--record=$(abs_builddir)/src/config/.files2 --root=$(DESTDIR); \
  	fi
  	cd $(DESTDIR)$(py2execdir) && \
-@@ -3616,11 +3618,13 @@
+@@ -3615,11 +3617,13 @@ if BUILD_PYTHON3_BINDINGS
  		cd $(builddir)/src/config; \
  		$(PYTHON3) setup.py build --build-base $(abs_builddir)/src/config \
  			install $(DISTSETUPOPTS) --prefix=$(PYTHON3_PREFIX) \

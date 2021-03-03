@@ -1,6 +1,7 @@
---- sssd-1.13.4/Makefile.am~	2016-05-01 12:25:42.000000000 +0300
-+++ sssd-1.13.4/Makefile.am	2016-05-01 12:26:04.028031558 +0300
-@@ -1010,7 +1010,7 @@
+diff -urNp -x '*.orig' sssd-1.13.4.org/Makefile.am sssd-1.13.4/Makefile.am
+--- sssd-1.13.4.org/Makefile.am	2021-03-03 21:59:13.952593354 +0100
++++ sssd-1.13.4/Makefile.am	2021-03-03 21:59:14.095972102 +0100
+@@ -1010,7 +1010,7 @@ libwbclient_la_SOURCES = \
      $(NULL)
  libwbclient_la_LIBADD = \
      libsss_nss_idmap.la \
